@@ -2,30 +2,39 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>東方紅白魔 ~ Dual Boss Shooter ~</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
-        body {
+        html, body {
             background-color: #000;
             color: #fff;
             font-family: 'DotGothic16', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
-            flex-direction: column;
-            text-align: center;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* ページ全体のスクロールを禁止 */
+        }
+        #game-wrapper {
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             width: 100%;
+             height: 100%;
         }
         #game-container {
             display: flex;
             border: 2px solid #fff;
             box-shadow: 0 0 20px #ff00ff;
+            width: 804px; /* 600 + 200 + 4 */
+            height: 804px;
         }
         #game-canvas-wrapper {
             position: relative;
+            width: 600px;
+            height: 800px;
         }
         #game-canvas {
             background-color: #010517;
@@ -108,8 +117,8 @@
         }
         #start-screen {
             position: absolute;
-            width: 600px;
-            height: 800px;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.7);
             display: flex;
             flex-direction: column;
@@ -128,8 +137,8 @@
         }
         #message-overlay {
             position: absolute;
-            width: 600px;
-            height: 800px;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.5);
             display: none;
             flex-direction: column;
@@ -144,43 +153,24 @@
             position: absolute;
             bottom: 20px;
             left: 20px;
-            width: 560px; /* 600 - 20*2 */
+            width: calc(100% - 40px);
             height: 150px;
             border: 1px solid #66f;
             padding: 10px;
-            padding-bottom: 25px; /* Prompt分のスペースを確保 */
+            padding-bottom: 25px;
             background: rgba(0,0,50,0.8);
             border-radius: 5px;
             font-size: 14px;
             line-height: 1.4;
             cursor: pointer;
             z-index: 80;
-            overflow-y: scroll; /* スクロールバーを常に表示 */
+            overflow-y: scroll;
         }
-        /* スクロールバーのスタイル */
-        #dialogue-box::-webkit-scrollbar {
-            width: 8px;
-        }
-        #dialogue-box::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.2);
-            border-radius: 4px;
-        }
-        #dialogue-box::-webkit-scrollbar-thumb {
-            background-color: #888;
-            border-radius: 4px;
-            border: 2px solid transparent;
-            background-clip: content-box;
-        }
-        #dialogue-box::-webkit-scrollbar-thumb:hover {
-            background-color: #aaa;
-        }
-
-        /* クリック案内のアニメーション */
-        @keyframes blinker {
-            50% {
-                opacity: 0.5;
-            }
-        }
+        #dialogue-box::-webkit-scrollbar { width: 8px; }
+        #dialogue-box::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        #dialogue-box::-webkit-scrollbar-thumb { background-color: #888; border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+        #dialogue-box::-webkit-scrollbar-thumb:hover { background-color: #aaa; }
+        @keyframes blinker { 50% { opacity: 0.5; } }
         .continue-prompt {
             position: absolute;
             bottom: 5px;
@@ -190,50 +180,111 @@
             animation: blinker 1.5s linear infinite;
             text-shadow: 0 0 5px #000;
         }
+
+        /* スマホ向けレスポンシブ対応 */
+        @media (max-width: 850px) {
+            #game-container {
+                flex-direction: column;
+                width: 100vw;
+                height: 100vh;
+                border: none;
+                box-shadow: none;
+            }
+            #game-canvas-wrapper {
+                width: 100%;
+                flex-grow: 1;
+                min-height: 0; /* flexboxのバグ対策 */
+            }
+            #game-canvas {
+                width: 100%;
+                height: 100%;
+            }
+            #sidebar {
+                width: 100%;
+                height: 140px; /* 高さを調整 */
+                flex-shrink: 0;
+                border-left: none;
+                border-top: 2px solid #fff;
+                flex-direction: row;
+                justify-content: space-around;
+                align-items: center;
+                padding: 5px;
+            }
+            #sidebar > div:first-child { /* Info block */
+                flex-basis: 60%;
+                font-size: 12px;
+            }
+            #sidebar .info {
+                font-size: 12px;
+                margin-bottom: 2px;
+            }
+            #sidebar > div:last-child { /* Image block */
+                flex-basis: 35%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #sidebar img {
+                max-width: 80px;
+                height: auto;
+            }
+            #dialogue-box {
+                height: 120px;
+                bottom: 150px; /* サイドバーの上に配置 */
+                left: 5%;
+                width: 90%;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="game-canvas-wrapper">
-            <div id="start-screen">
-                <h1>東方紅白魔</h1>
-                <p>~ Dual Boss Shooter ~</p>
-                <p style="margin-top: 50px;">クリックしてスタート</p>
-                 <div style="margin-top: 40px; font-size: 16px; text-align: left;">
-                    <p>プレイヤー: 河城にとり</p>
-                    <p>操作方法:</p>
-                    <p>移動: 十字キー</p>
-                    <p>ショット: Zキー</p>
-                    <p>ボム: Xキー</p>
-                    <p>低速移動: Shiftキー</p>
+    <div id="game-wrapper">
+        <div id="game-container">
+            <div id="game-canvas-wrapper">
+                <div id="start-screen">
+                    <h1>東方紅白魔</h1>
+                    <p>~ Dual Boss Shooter ~</p>
+                    <div style="margin-top: 40px; font-size: 16px; text-align: left;">
+                        <p><b>PC:</b></p>
+                        <p>移動: 十字キー</p>
+                        <p>ショット: Zキー</p>
+                        <p>ボム: Xキー</p>
+                        <p>低速移動: Shiftキー</p>
+                        <br>
+                        <p><b>スマホ:</b></p>
+                        <p>移動: 指でドラッグ</p>
+                        <p>ショット: オート</p>
+                        <p>ボム: ダブルタップ</p>
+                    </div>
                 </div>
+                <div id="message-overlay"></div>
+                <canvas id="game-canvas" width="600" height="800"></canvas>
+                <div id="dialogue-box" style="display: none;"></div>
             </div>
-            <div id="message-overlay"></div>
-            <canvas id="game-canvas" width="600" height="800"></canvas>
-            <div id="dialogue-box" style="display: none;"></div>
-        </div>
-        <div id="sidebar">
-            <div>
-                <h2 id="sidebar-title">東方紅白魔</h2>
-                <div class="info">
-                    <span class="info-label">SCORE</span>
-                    <span id="score" class="info-value">0</span>
-                </div>
-                <div class="info">
-                    <span class="info-label">PLAYER</span>
-                    <span id="lives" class="info-value"></span>
-                </div>
-                 <div class="info">
-                    <span class="info-label">POWER</span>
-                    <span id="power" class="info-value">0</span>
-                </div>
-                <div class="info">
-                    <span class="info-label">GRAZE</span>
-                    <span id="graze" class="info-value">0</span>
-                </div>
-                <div class="info">
-                    <span class="info-label">BOMB</span>
-                    <span id="bombs" class="info-value"></span>
+            <div id="sidebar">
+                <div>
+                    <h2 id="sidebar-title">東方紅白魔</h2>
+                    <div class="info">
+                        <span class="info-label">SCORE</span>
+                        <span id="score" class="info-value">0</span>
+                    </div>
+                    <div class="info">
+                        <span class="info-label">PLAYER</span>
+                        <span id="lives" class="info-value"></span>
+                    </div>
+                     <div class="info">
+                        <span class="info-label">POWER</span>
+                        <span id="power" class="info-value">0</span>
+                    </div>
+                    <div class="info">
+                        <span class="info-label">GRAZE</span>
+                        <span id="graze" class="info-value">0</span>
+                    </div>
+                    <div class="info">
+                        <span class="info-label">BOMB</span>
+                        <span id="bombs" class="info-value"></span>
+                    </div>
                 </div>
                 <div id="boss-info" style="display: none;">
                     <div id="boss-name-container">
@@ -245,11 +296,11 @@
                     </div>
                     <p id="spell-card-name"></p>
                 </div>
-            </div>
-            <div>
-                 <img id="player-img-display" src="https://placehold.co/180x240/a2d4ab/3a6b35?text=Nitori" alt="河城にとりの画像" style="border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
-                 <img id="reimu-img-display" src="https://placehold.co/180x240/e6d8d8/c44d56?text=Reimu" alt="博麗霊夢の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
-                 <img id="marisa-img-display" src="https://placehold.co/180x240/d1c4e9/673ab7?text=Marisa" alt="霧雨魔理沙の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+                <div>
+                     <img id="player-img-display" src="https://placehold.co/180x240/a2d4ab/3a6b35" alt="河城にとりの画像" style="border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+                     <img id="reimu-img-display" src="https://placehold.co/180x240/e6d8d8/c44d56" alt="博麗霊夢の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+                     <img id="marisa-img-display" src="https://placehold.co/180x240/d1c4e9/673ab7" alt="霧雨魔理沙の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+                </div>
             </div>
         </div>
     </div>
@@ -290,6 +341,14 @@
             let score = 0;
             const keys = {};
             let currentBossName = '';
+
+            const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+            // Touch control variables
+            let isDragging = false;
+            let touchStartX, touchStartY;
+            let playerStartX, playerStartY;
+            let lastTap = 0;
 
             // --- Gemini API ---
             async function callGemini(prompt, schema) {
@@ -469,6 +528,10 @@
             // --- イベントリスナー ---
             window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
             window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
             startScreen.addEventListener('click', () => {
                 if (!gameStarted) {
@@ -666,42 +729,29 @@
 
             // --- 更新関数 ---
             function updatePlayer() {
-                if (keys['shift']) {
-                    player.speed = 2.5;
-                } else {
-                    player.speed = 5;
+                // Keyboard movement
+                if (!isMobile) {
+                    if (keys['shift']) {
+                        player.speed = 2.5;
+                    } else {
+                        player.speed = 5;
+                    }
+                    if (keys['arrowleft'] && player.x > player.width / 2) player.x -= player.speed;
+                    if (keys['arrowright'] && player.x < canvas.width - player.width / 2) player.x += player.speed;
+                    if (keys['arrowup'] && player.y > player.height / 2) player.y -= player.speed;
+                    if (keys['arrowdown'] && player.y < canvas.height - player.height / 2) player.y += player.speed;
                 }
-                if (keys['arrowleft'] && player.x > player.width / 2) player.x -= player.speed;
-                if (keys['arrowright'] && player.x < canvas.width - player.width / 2) player.x += player.speed;
-                if (keys['arrowup'] && player.y > player.height / 2) player.y -= player.speed;
-                if (keys['arrowdown'] && player.y < canvas.height - player.height / 2) player.y += player.speed;
 
-                if (keys['z'] && player.shootCooldown <= 0) {
-                    try { if(sfx) sfx.playerShot.triggerAttackRelease('A4', '8n'); } catch(e) { console.error(e); }
-                    player.shootCooldown = 4;
-                    const speed = 20;
-                    bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32' });
-                    const powerLevel = Math.floor(player.power / 20);
-                    if (powerLevel >= 1) {
-                        const angle = 0.1;
-                        bullets.push({ x: player.x - 15, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                        bullets.push({ x: player.x + 15, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                    }
-                     if (powerLevel >= 2) {
-                        const angle = 0.2;
-                        bullets.push({ x: player.x - 20, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                        bullets.push({ x: player.x + 20, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                    }
+                // Auto-fire logic
+                if (keys['z'] || (isMobile && isDragging)) {
+                    fireShot();
                 }
                 if (player.shootCooldown > 0) player.shootCooldown--;
 
-                if (keys['x'] && player.bombs > 0 && !player.bombing) {
-                    try { if(sfx) sfx.bomb.triggerAttackRelease("2n"); } catch(e) { console.error(e); }
-                    player.bombs--;
-                    player.bombing = true;
-                    player.bombTimer = 120;
-                    player.invincible = true;
-                    player.invincibleTimer = 150;
+                // Keyboard bomb
+                if (keys['x']) {
+                    fireBomb();
+                    keys['x'] = false; // Prevent holding down
                 }
 
                 if (player.bombing) {
@@ -712,6 +762,36 @@
                 if (player.invincible) {
                     player.invincibleTimer--;
                     if (player.invincibleTimer <= 0) player.invincible = false;
+                }
+            }
+
+            function fireShot() {
+                if (player.shootCooldown > 0) return;
+                try { if(sfx) sfx.playerShot.triggerAttackRelease('A4', '8n'); } catch(e) { console.error(e); }
+                player.shootCooldown = 4;
+                const speed = 20;
+                bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32' });
+                const powerLevel = Math.floor(player.power / 20);
+                if (powerLevel >= 1) {
+                    const angle = 0.1;
+                    bullets.push({ x: player.x - 15, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    bullets.push({ x: player.x + 15, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                }
+                 if (powerLevel >= 2) {
+                    const angle = 0.2;
+                    bullets.push({ x: player.x - 20, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    bullets.push({ x: player.x + 20, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                }
+            }
+
+            function fireBomb() {
+                if (player.bombs > 0 && !player.bombing) {
+                    try { if(sfx) sfx.bomb.triggerAttackRelease("2n"); } catch(e) { console.error(e); }
+                    player.bombs--;
+                    player.bombing = true;
+                    player.bombTimer = 120;
+                    player.invincible = true;
+                    player.invincibleTimer = 150;
                 }
             }
 
@@ -1018,7 +1098,6 @@
                         { type: 'spell', hp: 10000 * 0.3, card: { name: '魔砲「ファイナルスパーク」', duration: 900, func: finalSpark } },
                     ];
                 }
-                // startNextBossPhase(); // BUG FIX: Do not call here, call after dialogue.
             }
 
             async function handleBossDialogue(name) {
@@ -1050,7 +1129,7 @@
 
                 const continueFight = () => {
                     dialogueBox.style.display = 'none';
-                    startNextBossPhase(); // BUG FIX: Start the first phase here
+                    startNextBossPhase();
                     boss.phase = 1;
                 };
                 dialogueBox.addEventListener('click', continueFight, { once: true });
@@ -1366,6 +1445,62 @@
                 }, 5000);
             }
 
+            // --- Touch Handlers ---
+            function handleTouchStart(e) {
+                e.preventDefault();
+                if (!gameStarted) return;
+
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 300 && tapLength > 0) {
+                    fireBomb();
+                    lastTap = 0;
+                    isDragging = false;
+                    return;
+                }
+                lastTap = currentTime;
+
+                isDragging = true;
+                touchStartX = touchX;
+                touchStartY = touchY;
+                playerStartX = player.x;
+                playerStartY = player.y;
+            }
+
+            function handleTouchMove(e) {
+                e.preventDefault();
+                if (!isDragging || !gameStarted) return;
+
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+
+                const deltaX = touchX - touchStartX;
+                const deltaY = touchY - touchStartY;
+
+                player.x = playerStartX + deltaX;
+                player.y = playerStartY + deltaY;
+
+                player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+                player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, player.y));
+            }
+
+            function handleTouchEnd(e) {
+                e.preventDefault();
+                if (!isDragging || !gameStarted) return;
+                isDragging = false;
+            }
+
             // --- メインループ ---
             function gameLoop() {
                 try {
@@ -1395,6 +1530,8 @@
                     drawParticles();
                     drawPlayerBomb();
                     updateUI();
+
+                    ctx.clearRect(canvas.width - 20, canvas.height - 20, 20, 20);
 
                     gameTime++;
                     requestAnimationFrame(gameLoop);
