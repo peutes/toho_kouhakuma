@@ -67,6 +67,9 @@
             text-shadow: 0 0 5px #ff5a5a;
         }
         #sidebar .info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 18px;
             margin-bottom: 15px;
         }
@@ -75,12 +78,17 @@
         }
         #sidebar .info-value {
             color: #fff;
-            float: right;
         }
         #boss-info {
-            margin-top: 20px;
-            border-top: 1px dashed #fff;
-            padding-top: 10px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            background: rgba(28, 12, 28, 0.7);
+            z-index: 50;
+            border-bottom: 1px dashed #fff;
         }
         #boss-name-container {
             display: flex;
@@ -249,6 +257,16 @@
                     </div>
                 </div>
                 <div id="message-overlay"></div>
+                <div id="boss-info" style="display: none;">
+                    <div id="boss-name-container">
+                        <h3 id="boss-display-name">BOSS</h3>
+                        <span id="boss-spell-lives"></span>
+                    </div>
+                    <div id="boss-health-bar-container">
+                        <div id="boss-health-bar"></div>
+                    </div>
+                    <p id="spell-card-name"></p>
+                </div>
                 <canvas id="game-canvas" width="600" height="800"></canvas>
                 <div id="dialogue-box" style="display: none;"></div>
             </div>
@@ -275,16 +293,6 @@
                         <span class="info-label">BOMB</span>
                         <span id="bombs" class="info-value"></span>
                     </div>
-                </div>
-                <div id="boss-info" style="display: none;">
-                    <div id="boss-name-container">
-                        <h3 id="boss-display-name">BOSS</h3>
-                        <span id="boss-spell-lives"></span>
-                    </div>
-                    <div id="boss-health-bar-container">
-                        <div id="boss-health-bar"></div>
-                    </div>
-                    <p id="spell-card-name"></p>
                 </div>
             </div>
         </div>
