@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>東方紅白魔 ~ Dual Boss Shooter ~</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'DotGothic16', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+            text-align: center;
+        }
+        #game-container {
+            display: flex;
+            border: 2px solid #fff;
+            box-shadow: 0 0 20px #ff00ff;
+        }
+        #game-canvas-wrapper {
+            position: relative;
+        }
+        #game-canvas {
+            background-color: #010517;
+            background-image:
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px),
+                radial-gradient(rgba(255,255,255,.4), rgba(255,255,255,.1) 2px, transparent 30px);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+            animation: scroll-bg 30s linear infinite;
+        }
+        @keyframes scroll-bg {
+            from { background-position-y: 0px; }
+            to { background-position-y: 550px; }
+        }
+        #sidebar {
+            width: 200px;
+            background-color: #1c0c1c;
+            padding: 20px;
+            box-sizing: border-box;
+            border-left: 2px solid #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        #sidebar h2 {
+            margin-top: 0;
+            color: #ff5a5a;
+            text-shadow: 0 0 5px #ff5a5a;
+        }
+        #sidebar .info {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        #sidebar .info-label {
+            color: #aaa;
+        }
+        #sidebar .info-value {
+            color: #fff;
+            float: right;
+        }
+        #boss-info {
+            margin-top: 20px;
+            border-top: 1px dashed #fff;
+            padding-top: 10px;
+        }
+        #boss-name-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #boss-spell-lives {
+            color: #ffc4e1;
+        }
+        #boss-health-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #555;
+            border: 1px solid #fff;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        #boss-health-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff);
+            border-radius: 4px;
+            transition: width 0.2s ease-out;
+        }
+        #spell-card-name {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #ffc4e1;
+            height: 40px;
+            text-align: right;
+        }
+        #player-images, #boss-images {
+            display: none;
+        }
+        #start-screen {
+            position: absolute;
+            width: 600px;
+            height: 800px;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+        }
+        #start-screen h1 {
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 0 0 15px #0ff;
+        }
+        #start-screen p {
+            font-size: 24px;
+        }
+        #message-overlay {
+            position: absolute;
+            width: 600px;
+            height: 800px;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            text-align: center;
+            text-shadow: 0 0 20px #f0f;
+            z-index: 90;
+        }
+        #dialogue-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 560px; /* 600 - 20*2 */
+            height: 150px;
+            border: 1px solid #66f;
+            padding: 10px;
+            padding-bottom: 25px; /* Prompt分のスペースを確保 */
+            background: rgba(0,0,50,0.8);
+            border-radius: 5px;
+            font-size: 14px;
+            line-height: 1.4;
+            cursor: pointer;
+            z-index: 80;
+            overflow-y: scroll; /* スクロールバーを常に表示 */
+        }
+        /* スクロールバーのスタイル */
+        #dialogue-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        #dialogue-box::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+        #dialogue-box::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 4px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        #dialogue-box::-webkit-scrollbar-thumb:hover {
+            background-color: #aaa;
+        }
+
+        /* クリック案内のアニメーション */
+        @keyframes blinker {
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .continue-prompt {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            color: #ffff88;
+            font-weight: bold;
+            animation: blinker 1.5s linear infinite;
+            text-shadow: 0 0 5px #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-canvas-wrapper">
+            <div id="start-screen">
+                <h1>東方紅白魔</h1>
+                <p>~ Dual Boss Shooter ~</p>
+                <p style="margin-top: 50px;">クリックしてスタート</p>
+                 <div style="margin-top: 40px; font-size: 16px; text-align: left;">
+                    <p>プレイヤー: 河城にとり</p>
+                    <p>操作方法:</p>
+                    <p>移動: 十字キー</p>
+                    <p>ショット: Zキー</p>
+                    <p>ボム: Xキー</p>
+                    <p>低速移動: Shiftキー</p>
+                </div>
+            </div>
+            <div id="message-overlay"></div>
+            <canvas id="game-canvas" width="600" height="800"></canvas>
+            <div id="dialogue-box" style="display: none;"></div>
+        </div>
+        <div id="sidebar">
+            <div>
+                <h2 id="sidebar-title">東方紅白魔</h2>
+                <div class="info">
+                    <span class="info-label">SCORE</span>
+                    <span id="score" class="info-value">0</span>
+                </div>
+                <div class="info">
+                    <span class="info-label">PLAYER</span>
+                    <span id="lives" class="info-value"></span>
+                </div>
+                 <div class="info">
+                    <span class="info-label">POWER</span>
+                    <span id="power" class="info-value">0</span>
+                </div>
+                <div class="info">
+                    <span class="info-label">GRAZE</span>
+                    <span id="graze" class="info-value">0</span>
+                </div>
+                <div class="info">
+                    <span class="info-label">BOMB</span>
+                    <span id="bombs" class="info-value"></span>
+                </div>
+                <div id="boss-info" style="display: none;">
+                    <div id="boss-name-container">
+                        <h3 id="boss-display-name">BOSS</h3>
+                        <span id="boss-spell-lives"></span>
+                    </div>
+                    <div id="boss-health-bar-container">
+                        <div id="boss-health-bar"></div>
+                    </div>
+                    <p id="spell-card-name"></p>
+                </div>
+            </div>
+            <div>
+                 <img id="player-img-display" src="https://placehold.co/180x240/a2d4ab/3a6b35?text=Nitori" alt="河城にとりの画像" style="border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+                 <img id="reimu-img-display" src="https://placehold.co/180x240/e6d8d8/c44d56?text=Reimu" alt="博麗霊夢の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+                 <img id="marisa-img-display" src="https://placehold.co/180x240/d1c4e9/673ab7?text=Marisa" alt="霧雨魔理沙の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
+            </div>
+        </div>
+    </div>
+
+    <div id="player-images">
+        <img id="player-img" src="https://placehold.co/64x64/3a6b35/ffffff?text=N" alt="にとり">
+    </div>
+    <div id="boss-images">
+        <img id="reimu-img" src="https://placehold.co/128x128/ff0000/ffffff?text=R" alt="霊夢">
+        <img id="marisa-img" src="https://placehold.co/128x128/ffff00/000000?text=M" alt="魔理沙">
+    </div>
+
+    <script>
+        window.onload = function() {
+            // --- 初期設定 ---
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const scoreEl = document.getElementById('score');
+            const livesEl = document.getElementById('lives');
+            const powerEl = document.getElementById('power');
+            const grazeEl = document.getElementById('graze');
+            const bombsEl = document.getElementById('bombs');
+            const bossInfoEl = document.getElementById('boss-info');
+            const bossHealthBar = document.getElementById('boss-health-bar');
+            const spellCardNameEl = document.getElementById('spell-card-name');
+            const bossSpellLivesEl = document.getElementById('boss-spell-lives');
+            const startScreen = document.getElementById('start-screen');
+            const messageOverlay = document.getElementById('message-overlay');
+            const dialogueBox = document.getElementById('dialogue-box');
+            const bossDisplayName = document.getElementById('boss-display-name');
+
+            const playerImgDisplay = document.getElementById('player-img-display');
+            const reimuImgDisplay = document.getElementById('reimu-img-display');
+            const marisaImgDisplay = document.getElementById('marisa-img-display');
+
+            let gameStarted = false;
+            let gameTime = 0;
+            let score = 0;
+            const keys = {};
+            let currentBossName = '';
+
+            // --- Gemini API ---
+            async function callGemini(prompt, schema) {
+                const apiKey = ""; // 動作させるには、ここに有効なAPIキーを入力してください
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: schema
+                    }
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0]?.content?.parts?.[0]) {
+                        return JSON.parse(result.candidates[0].content.parts[0].text);
+                    }
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                }
+                return null;
+            }
+
+            // --- 音楽・効果音設定 ---
+            let sfx, music;
+            function setupAudio() {
+                try {
+                    if (typeof Tone === 'undefined') {
+                        console.error("Tone.js is not loaded yet.");
+                        return false;
+                    }
+                    sfx = {
+                        playerShot: new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.005, decay: 0.08, sustain: 0, release: 0.1 } }).toDestination(),
+                        bomb: new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.01, decay: 1.5, sustain: 0, release: 1 } }).toDestination(),
+                        enemyHit: new Tone.PolySynth(Tone.MembraneSynth, { pitchDecay: 0.01, octaves: 2, envelope: { attack: 0.001, decay: 0.1, sustain: 0 } }).toDestination(),
+                        playerHit: new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.5, sustain: 0, release: 0.2 } }).toDestination(),
+                        powerUp: new Tone.Synth({ oscillator: {type: 'sine'}, envelope: {attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2}}).toDestination(),
+                        graze: new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+                        laser: new Tone.Synth({ oscillator: { type: 'pwm', modulationFrequency: 0.2 }, envelope: { attack: 0.01, decay: 0.8, sustain: 0.1, release: 0.2 } }).toDestination(),
+                    };
+                    Object.values(sfx).forEach(synth => synth.volume.value = -15);
+                    sfx.playerHit.volume.value = -5;
+                    sfx.graze.volume.value = -20;
+
+                    music = {
+                        stage: new Tone.Synth({ oscillator: { type: "pulse", width: 0.6 }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.1 } }).toDestination(),
+                        reimu: new Tone.Synth({ oscillator: { type: "fmsquare", modulationType: "sawtooth", harmonicity: 0.8 }, envelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 0.2 } }).toDestination(),
+                        marisa: new Tone.Synth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.1 } }).toDestination(),
+                        drums: new Tone.MembraneSynth().toDestination(),
+                        cymbal: new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination(),
+                        activeSeq: null
+                    };
+                    Object.values(music).forEach(instrument => {
+                        if (instrument instanceof Tone.Synth || instrument instanceof Tone.PolySynth || instrument instanceof Tone.MonoSynth || instrument instanceof Tone.MembraneSynth || instrument instanceof Tone.MetalSynth) {
+                            instrument.volume.value = -18;
+                        }
+                    });
+                    music.drums.volume.value = -12;
+
+                    return true;
+                } catch (e) {
+                    console.error("Error setting up audio:", e);
+                    return false;
+                }
+            }
+
+            function stopMusic() {
+                try {
+                    if (Tone.Transport.state === 'started') {
+                        if (music.activeSeq) music.activeSeq.stop(0);
+                        Tone.Transport.stop();
+                        Tone.Transport.cancel();
+                    }
+                } catch(e) {
+                    console.error("Error stopping music:", e);
+                }
+            }
+
+            function playMusic(theme) {
+                try {
+                    stopMusic();
+                    let melody, synth;
+                    switch(theme) {
+                        case 'reimu':
+                            melody = ['E5','D#5','E5','F#5','G#5','B5','A5','G#5','F#5','E5','F#5','D#5','E5',null,'B4',null];
+                            synth = music.reimu;
+                            Tone.Transport.bpm.value = 170;
+                            break;
+                        case 'marisa':
+                            melody = ['C6','_','G5','_','A#5','_','G5','_','F5','_','G5','_','C6','_','G5','_'];
+                            synth = music.marisa;
+                            Tone.Transport.bpm.value = 190;
+                            break;
+                        default: // Stage
+                            melody = ['G4','A4','C5','D5','C5','A4','G4',null,'F4','G4','A4','C5','A4','G4','F4',null];
+                            synth = music.stage;
+                            Tone.Transport.bpm.value = 160;
+                    }
+
+                    music.activeSeq = new Tone.Sequence((time, note) => {
+                        if (note) synth.triggerAttackRelease(note, '8n', time);
+                    }, melody, '4n').start(0);
+
+                    new Tone.Loop(time => {
+                        music.drums.triggerAttackRelease("C2", "8n", time);
+                        music.cymbal.triggerAttackRelease("C4", "16n", time + Tone.Time('8n').toSeconds());
+                    }, '4n').start(0);
+
+                    Tone.Transport.start();
+                } catch (e) {
+                    console.error("Error playing music:", e);
+                }
+            }
+
+            // --- プレイヤー設定 (にとり) ---
+            const player = {
+                x: canvas.width / 2,
+                y: canvas.height - 100,
+                width: 48,
+                height: 48,
+                speed: 5,
+                lives: 100,
+                power: 0,
+                bombs: 2,
+                graze: 0,
+                hitboxRadius: 5,
+                grazeRadius: 30,
+                shootCooldown: 0,
+                invincible: false,
+                invincibleTimer: 0,
+                bombing: false,
+                bombTimer: 0,
+                img: document.getElementById('player-img'),
+            };
+
+            // --- 各種配列 ---
+            let bullets = [];
+            let enemyBullets = [];
+            let enemies = [];
+            let particles = [];
+            let powerUps = [];
+            let lasers = [];
+
+            // --- ボス設定 ---
+            const boss = {
+                x: canvas.width / 2, y: -100, width: 80, height: 80,
+                speed: 2, active: false, visible: true, hp: 0, maxHp: 1,
+                phase: 0, phaseTimer: 0, phases: [], currentPhaseIndex: -1,
+                img: null, targetX: canvas.width / 2, targetY: 150,
+                activeCircles: [],
+                orbs: [],
+            };
+
+            // --- ステージ設定 ---
+            const stage = {
+                timeline: [
+                    { time: 120, type: 'fairy', side: 'left', count: 5 },
+                    { time: 240, type: 'fairy', side: 'right', count: 5 },
+                    { time: 360, type: 'sunflower', side: 'center', count: 1 },
+                    { time: 540, type: 'fairy', side: 'v-shape', count: 8 },
+                    { time: 720, type: 'sunflower', side: 'left', count: 1 },
+                    { time: 720, type: 'sunflower', side: 'right', count: 1 },
+                    { time: 900, type: 'boss', name: 'reimu' }
+                ],
+                nextEventIndex: 0,
+                bossQueue: ['marisa']
+            };
+
+            // --- イベントリスナー ---
+            window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+            window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+            startScreen.addEventListener('click', () => {
+                if (!gameStarted) {
+                    Tone.start().then(() => {
+                        if (!setupAudio()) console.error("効果音の初期化に失敗しました。");
+                        gameStarted = true;
+                        startScreen.style.display = 'none';
+                        resetGame();
+                        gameLoop();
+                    }).catch(error => {
+                        console.error("Tone.js could not be started:", error);
+                        gameStarted = true;
+                        startScreen.style.display = 'none';
+                        resetGame();
+                        gameLoop();
+                    });
+                }
+            });
+
+            // --- ゲームリセット ---
+            function resetGame() {
+                gameTime = 0; score = 0;
+                player.lives = 100;
+                player.power = 0; player.graze = 0; player.bombs = 2;
+                player.x = canvas.width / 2; player.y = canvas.height - 100;
+                bullets = []; enemyBullets = []; enemies = []; particles = []; powerUps = []; lasers = [];
+                boss.active = false;
+                stage.nextEventIndex = 0;
+                stage.bossQueue = ['marisa'];
+                playMusic('stage');
+                updateUI();
+            }
+
+            // --- 描画関数 ---
+            function drawPlayer() {
+                if (player.invincible && Math.floor(player.invincibleTimer / 6) % 2 === 0) return;
+                ctx.drawImage(player.img, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
+            }
+
+            function drawBullets() {
+                bullets.forEach(b => {
+                    ctx.fillStyle = b.color;
+                    ctx.shadowColor = b.color;
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.shadowBlur = 0;
+            }
+
+            function drawEnemyBullets() {
+                enemyBullets.forEach(b => {
+                    ctx.save();
+                    ctx.globalAlpha = b.alpha || 1.0;
+                    ctx.translate(b.x, b.y);
+                    ctx.rotate(b.angle);
+                    ctx.shadowColor = b.color;
+                    ctx.shadowBlur = 8;
+                    if (b.shape === 'amulet') {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(-b.radius * 0.5, -b.radius, b.radius, b.radius * 2);
+                        ctx.fillStyle = '#ff0000';
+                        ctx.fillRect(-b.radius * 0.15, -b.radius * 0.7, b.radius * 0.3, b.radius * 1.4);
+                    } else if (b.shape === 'star') {
+                        ctx.fillStyle = b.color;
+                        ctx.beginPath();
+                        for (let i = 0; i < 5; i++) {
+                            ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * b.radius, -Math.sin((18 + i * 72) * Math.PI / 180) * b.radius);
+                            ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * b.radius * 0.5, -Math.sin((54 + i * 72) * Math.PI / 180) * b.radius * 0.5);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = b.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                });
+                ctx.shadowBlur = 0;
+            }
+
+            function drawEnemies() {
+                enemies.forEach(e => {
+                    ctx.save();
+                    ctx.translate(e.x, e.y);
+                    ctx.rotate(e.angle);
+                    ctx.fillStyle = e.color;
+                    ctx.fillRect(-e.width / 2, -e.height / 2, e.width, e.height);
+                    ctx.restore();
+                });
+            }
+
+            function drawPowerUps() {
+                powerUps.forEach(p => {
+                    ctx.fillStyle = '#ff5555';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px DotGothic16';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('P', p.x, p.y);
+                });
+            }
+
+            function drawBoss() {
+                if (!boss.active || !boss.visible || !boss.img) return;
+                ctx.drawImage(boss.img, boss.x - boss.width / 2, boss.y - boss.height / 2, boss.width, boss.height);
+            }
+
+            function drawLasers() {
+                lasers.forEach(l => {
+                    ctx.save();
+                    ctx.translate(l.x, l.y);
+                    ctx.rotate(l.angle);
+                    ctx.globalAlpha = l.alpha;
+                    if (l.width > 20) {
+                        const grad = ctx.createLinearGradient(0, -l.width / 2, 0, l.width / 2);
+                        const baseColor = l.color.replace('rgb(', '').replace(')', '');
+                        grad.addColorStop(0, `rgba(${baseColor}, 0)`);
+                        grad.addColorStop(0.2, `rgba(${baseColor}, 0.8)`);
+                        grad.addColorStop(0.5, `rgba(${baseColor}, 1)`);
+                        grad.addColorStop(0.8, `rgba(${baseColor}, 0.8)`);
+                        grad.addColorStop(1, `rgba(${baseColor}, 0)`);
+                        ctx.fillStyle = grad;
+                    } else {
+                        ctx.fillStyle = l.color;
+                    }
+                    ctx.fillRect(0, -l.width / 2, canvas.height * 1.5, l.width);
+                    ctx.restore();
+                });
+            }
+
+            function drawParticles() {
+                particles.forEach(p => {
+                    ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            function drawPlayerBomb() {
+                if (!player.bombing) return;
+                const t = player.bombTimer / 120;
+                const radius = Math.sin(Math.PI * t) * canvas.width;
+
+                const grad = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, radius);
+                grad.addColorStop(0, 'rgba(200, 255, 255, 0.8)');
+                grad.addColorStop(0.5, 'rgba(60, 179, 113, 0.6)');
+                grad.addColorStop(1, 'rgba(30, 144, 255, 0.2)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function updateUI() {
+                scoreEl.textContent = score;
+                livesEl.textContent = 'x ' + player.lives;
+                powerEl.textContent = player.power;
+                grazeEl.textContent = player.graze;
+                bombsEl.innerHTML = '&#x1F9A0;'.repeat(player.bombs);
+
+                playerImgDisplay.style.display = 'block';
+                reimuImgDisplay.style.display = 'none';
+                marisaImgDisplay.style.display = 'none';
+
+                if (boss.active) {
+                    bossInfoEl.style.display = 'block';
+                    const healthPercentage = Math.max(0, boss.hp / boss.maxHp);
+                    bossHealthBar.style.width = `${healthPercentage * 100}%`;
+
+                    playerImgDisplay.style.display = 'none';
+                    if (currentBossName === 'reimu') {
+                        reimuImgDisplay.style.display = 'block';
+                        bossDisplayName.innerHTML = 'BOSS ⛩️';
+                    } else if (currentBossName === 'marisa') {
+                        marisaImgDisplay.style.display = 'block';
+                        bossDisplayName.innerHTML = 'BOSS 🧙';
+                    }
+
+                    const remainingSpells = boss.phases.filter((p, i) => p.type === 'spell' && i >= boss.currentPhaseIndex).length;
+                    bossSpellLivesEl.innerHTML = '&#x2605;'.repeat(remainingSpells);
+
+                } else {
+                    bossInfoEl.style.display = 'none';
+                    spellCardNameEl.textContent = '';
+                }
+            }
+
+            // --- 更新関数 ---
+            function updatePlayer() {
+                if (keys['shift']) {
+                    player.speed = 2.5;
+                } else {
+                    player.speed = 5;
+                }
+                if (keys['arrowleft'] && player.x > player.width / 2) player.x -= player.speed;
+                if (keys['arrowright'] && player.x < canvas.width - player.width / 2) player.x += player.speed;
+                if (keys['arrowup'] && player.y > player.height / 2) player.y -= player.speed;
+                if (keys['arrowdown'] && player.y < canvas.height - player.height / 2) player.y += player.speed;
+
+                if (keys['z'] && player.shootCooldown <= 0) {
+                    try { if(sfx) sfx.playerShot.triggerAttackRelease('A4', '8n'); } catch(e) { console.error(e); }
+                    player.shootCooldown = 4;
+                    const speed = 20;
+                    bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32' });
+                    const powerLevel = Math.floor(player.power / 20);
+                    if (powerLevel >= 1) {
+                        const angle = 0.1;
+                        bullets.push({ x: player.x - 15, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                        bullets.push({ x: player.x + 15, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    }
+                     if (powerLevel >= 2) {
+                        const angle = 0.2;
+                        bullets.push({ x: player.x - 20, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                        bullets.push({ x: player.x + 20, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    }
+                }
+                if (player.shootCooldown > 0) player.shootCooldown--;
+
+                if (keys['x'] && player.bombs > 0 && !player.bombing) {
+                    try { if(sfx) sfx.bomb.triggerAttackRelease("2n"); } catch(e) { console.error(e); }
+                    player.bombs--;
+                    player.bombing = true;
+                    player.bombTimer = 120;
+                    player.invincible = true;
+                    player.invincibleTimer = 150;
+                }
+
+                if (player.bombing) {
+                    player.bombTimer--;
+                    if (player.bombTimer <= 0) player.bombing = false;
+                }
+
+                if (player.invincible) {
+                    player.invincibleTimer--;
+                    if (player.invincibleTimer <= 0) player.invincible = false;
+                }
+            }
+
+            function updateBullets() {
+                bullets.forEach((b, i) => {
+                    b.x += b.dx;
+                    b.y += b.dy;
+                    if (b.y < 0) bullets.splice(i, 1);
+                });
+            }
+
+            function updatePowerUps() {
+                powerUps.forEach((p, i) => {
+                    const dy = player.y - p.y;
+                    const dx = player.x - p.x;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < 80) {
+                        p.x += dx / dist * 6;
+                        p.y += dy / dist * 6;
+                    } else {
+                         p.y += p.speed;
+                    }
+                    if (p.y > canvas.height + p.radius) powerUps.splice(i, 1);
+                });
+            }
+
+            function updateEnemyBullets() {
+                enemyBullets.forEach((b, i) => {
+                    try {
+                        if (b.update) b.update();
+                        else { b.x += b.dx; b.y += b.dy; }
+                        if (b.x < -b.radius - 20 || b.x > canvas.width + b.radius + 20 || b.y < -b.radius - 20 || b.y > canvas.height + b.radius + 20) {
+                            enemyBullets.splice(i, 1);
+                        }
+                    } catch(e) {
+                        console.error("Error updating bullet, removing it.", e, b);
+                        enemyBullets.splice(i, 1);
+                    }
+                });
+            }
+
+            function updateLasers() {
+                lasers.forEach((l, i) => {
+                    try {
+                        if(l.update) l.update();
+                        l.timer--;
+                        if (l.timer < 30) l.alpha = l.timer / 30;
+                        if (l.timer <= 0) lasers.splice(i, 1);
+                    } catch (e) {
+                         console.error("Error updating laser, removing it.", e, l);
+                         lasers.splice(i, 1);
+                    }
+                });
+            }
+
+            function updateEnemies() {
+                enemies.forEach((e, i) => {
+                    try {
+                        e.update();
+                        if (e.hp <= 0) {
+                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C2', '8n'); } catch(err) { console.error(err); }
+                            score += e.score;
+                            if (Math.random() < 0.3) spawnPowerUp(e.x, e.y);
+                            createExplosion(e.x, e.y, e.color, 20);
+                            enemies.splice(i, 1);
+                        } else if (e.y > canvas.height + e.height) {
+                            enemies.splice(i, 1);
+                        }
+                    } catch (err) {
+                        console.error("Error updating enemy, removing it.", err, e);
+                        enemies.splice(i, 1);
+                    }
+                });
+            }
+
+            function updateBoss() {
+                if (!boss.active) return;
+                if (boss.phase === -1) return;
+
+                if (boss.phase === 0) {
+                    boss.y += boss.speed;
+                    if (boss.y >= 150) {
+                        boss.phase = -1;
+                        handleBossDialogue(currentBossName);
+                    }
+                    return;
+                }
+
+                if (boss.currentPhaseIndex >= boss.phases.length) return;
+
+                const dx = boss.targetX - boss.x, dy = boss.targetY - boss.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 1) { boss.x += dx / dist * boss.speed; boss.y += dy / dist * boss.speed; }
+
+                boss.phaseTimer++;
+                const currentPhase = boss.phases[boss.currentPhaseIndex];
+                if (!currentPhase) return;
+
+                let phaseOver = false;
+                if (currentPhase.type === 'spell') {
+                    if (boss.hp <= 0 || boss.phaseTimer > currentPhase.card.duration) {
+                        if (boss.hp <= 0) {
+                            score += 50000;
+                            for(let i = 0; i < 15; i++) spawnPowerUp(boss.x + (Math.random() - 0.5) * 100, boss.y + (Math.random() - 0.5) * 100);
+                        }
+                        phaseOver = true;
+                    }
+                    currentPhase.card.func();
+                } else {
+                    if (boss.hp <= 0 || boss.phaseTimer > currentPhase.duration) phaseOver = true;
+                    currentPhase.func();
+                }
+
+                if (phaseOver) startNextBossPhase();
+            }
+
+            function updateParticles() {
+                particles.forEach((p, i) => {
+                    p.x += p.vx; p.y += p.vy; p.alpha -= 0.02;
+                    if (p.alpha <= 0) particles.splice(i, 1);
+                });
+            }
+
+            function updateStage() {
+                if (boss.active) return;
+                if (stage.nextEventIndex < stage.timeline.length) {
+                    const event = stage.timeline[stage.nextEventIndex];
+                    if (gameTime >= event.time) {
+                        if (event.type === 'boss') {
+                            spawnBoss(event.name);
+                        } else {
+                            spawnEnemies(event);
+                        }
+                        stage.nextEventIndex++;
+                    }
+                }
+            }
+
+            // --- 衝突判定 ---
+            function checkCollisions() {
+                bullets.forEach((b, bi) => {
+                    enemies.forEach(e => {
+                        if (Math.hypot(b.x - e.x, b.y - e.y) < e.width / 2) {
+                            e.hp -= 10;
+                            if(bullets[bi]) bullets.splice(bi, 1);
+                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(err) { console.error(err); }
+                            createExplosion(b.x, b.y, '#ffffff', 5);
+                        }
+                    });
+                    if (boss.active && !boss.invincible && boss.visible && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2) {
+                        boss.hp -= 10;
+                        if(bullets[bi]) bullets.splice(bi, 1);
+                        try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(e) { console.error(e); }
+                        createExplosion(b.x, b.y, '#ffffff', 5);
+                    }
+                });
+
+                powerUps.forEach((p, i) => {
+                    if (Math.hypot(p.x - player.x, p.y - player.y) < player.hitboxRadius + p.radius) {
+                        player.power++;
+                        try { if(sfx) sfx.powerUp.triggerAttackRelease('G5', '8n'); } catch(e) { console.error(e); }
+                        powerUps.splice(i, 1);
+                    }
+                });
+
+                if (player.bombing) {
+                    const t = player.bombTimer / 120;
+                    const radius = Math.sin(Math.PI * t) * canvas.width;
+                    const damage = 5;
+                    enemyBullets.forEach((b, i) => {
+                        if (Math.hypot(b.x - player.x, b.y - player.y) < radius) {
+                            if (Math.random() < 0.5) spawnPowerUp(b.x, b.y);
+                            enemyBullets.splice(i, 1);
+                        }
+                    });
+                    enemies.forEach(e => {
+                        if (Math.hypot(e.x - player.x, e.y - player.y) < radius) e.hp -= damage;
+                    });
+                    lasers.forEach((l, i) => {
+                         if (Math.hypot(l.x - player.x, l.y - player.y) < radius) {
+                             lasers.splice(i, 1);
+                         }
+                    });
+                    if (boss.active && Math.hypot(boss.x - player.x, boss.y - player.y) < radius) {
+                        boss.hp -= damage;
+                    }
+                }
+
+                if (player.invincible) return;
+
+                enemyBullets.forEach(b => {
+                    if (!b.grazed && Math.hypot(b.x - player.x, b.y - player.y) < player.grazeRadius) {
+                        b.grazed = true; player.graze++; score += 100;
+                        try { if(sfx) sfx.graze.triggerAttackRelease("C7", "32n"); } catch(e) { console.error(e); }
+                    }
+                    if (Math.hypot(b.x - player.x, b.y - player.y) < player.hitboxRadius + b.radius) playerHit();
+                });
+
+                lasers.forEach(l => {
+                    const playerDist = Math.abs((l.x - player.x) * Math.sin(l.angle) - (l.y - player.y) * Math.cos(l.angle));
+                    if (playerDist < l.width / 2 + player.hitboxRadius) playerHit();
+                });
+            }
+
+            function playerHit() {
+                if (player.invincible) return;
+                try { if(sfx) sfx.playerHit.triggerAttackRelease("16n"); } catch(e) { console.error(e); }
+                player.lives--;
+                player.power = Math.floor(player.power / 2);
+                createExplosion(player.x, player.y, '#ff0000', 50);
+                if (player.lives < 0) {
+                    gameOver();
+                } else {
+                    player.invincible = true;
+                    player.invincibleTimer = 180;
+                    player.x = canvas.width / 2;
+                    player.y = canvas.height - 100;
+                    enemyBullets = [];
+                    // lasers = []; // この行を削除
+                }
+            }
+
+            function spawnPowerUp(x, y) {
+                powerUps.push({ x, y, speed: 1.5, radius: 10 });
+            }
+
+            function spawnEnemies(event) {
+                for (let i = 0; i < event.count; i++) {
+                    let enemy;
+                    const commonProps = {
+                        hp: event.type === 'sunflower' ? 100 : 30,
+                        score: event.type === 'sunflower' ? 500 : 100,
+                        shootCooldown: 60 + Math.random() * 60,
+                        shootTimer: 0,
+                    };
+                    if (event.type === 'fairy') {
+                        enemy = { ...commonProps, x: 0, y: 0, width: 25, height: 25, color: '#90ee90', angle: 0, moveType: event.side, moveTimer: i * 15,
+                            update() {
+                                this.moveTimer++;
+                                if (this.moveType === 'left') { this.x = 50 + Math.sin(this.moveTimer / 50) * 30; this.y += 2; }
+                                else if (this.moveType === 'right') { this.x = canvas.width - 50 - Math.sin(this.moveTimer / 50) * 30; this.y += 2; }
+                                else if (this.moveType === 'v-shape') { const side = i % 2 === 0 ? 1 : -1; this.x = canvas.width / 2 + side * this.moveTimer * 2; this.y = 100 + this.moveTimer * 2; }
+                                else { this.x = (canvas.width / (event.count + 1)) * (i + 1); this.y = -30 - i * 20; this.y += 2; }
+                                this.shootTimer++;
+                                if (this.shootTimer > this.shootCooldown) {
+                                    this.shootTimer = 0;
+                                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                                    createEnemyBullet(this.x, this.y, 3, angle, '#ff8888', 5);
+                                }
+                            }
+                        };
+                    } else if (event.type === 'sunflower') {
+                        enemy = { ...commonProps, x: event.side === 'left' ? 150 : (event.side === 'right' ? 450 : 300), y: -30 - i * 40, width: 40, height: 40, color: '#ffcc00', angle: 0, moveTimer: 0,
+                            update() {
+                                if (this.y < 150 + i * 20) this.y += 1.5;
+                                this.angle += 0.02;
+                                this.shootTimer++;
+                                if (this.shootTimer > this.shootCooldown) {
+                                    this.shootTimer = 0;
+                                    for (let j = 0; j < 8; j++) {
+                                        const angle = (Math.PI * 2 / 8) * j + this.moveTimer / 30;
+                                        createEnemyBullet(this.x, this.y, 2.5, angle, '#ffff00', 6);
+                                    }
+                                }
+                                this.moveTimer++;
+                            }
+                        };
+                    }
+                    if (enemy) enemies.push(enemy);
+                }
+            }
+
+            // --- ボスの行動 ---
+            function spawnBoss(name) {
+                currentBossName = name;
+                boss.active = true;
+                boss.y = -100;
+                boss.x = canvas.width / 2;
+                boss.phase = 0;
+                boss.currentPhaseIndex = -1;
+                playMusic(name);
+
+                if (name === 'reimu') {
+                    boss.img = document.getElementById('reimu-img');
+                    boss.phases = [
+                        { type: 'non-spell', hp: 3000 * 0.3, duration: 600, func: reimuNon1 },
+                        { type: 'spell', hp: 4000 * 0.3, card: { name: '夢符「二重結界」', duration: 900, func: duplexBarrier } },
+                        { type: 'non-spell', hp: 3000 * 0.3, duration: 600, func: reimuNon2 },
+                        { type: 'spell', hp: 5000 * 0.3, card: { name: '霊符「夢想封印」', duration: 900, func: fantasySeal } },
+                        { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: reimuNon1 },
+                        { type: 'spell', hp: 6000 * 0.3, card: { name: '夢符「封魔陣」', duration: 1200, func: evilSealingCircle } },
+                        { type: 'spell', hp: 8000 * 0.3, card: { name: '神域「神霊大結界」', duration: 1500, func: greatDivineBarrier } },
+                    ];
+                } else if (name === 'marisa') {
+                    boss.img = document.getElementById('marisa-img');
+                    boss.phases = [
+                        { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: marisaNon1 },
+                        { type: 'spell', hp: 5000 * 0.3, card: { name: '魔符「ミルキーウェイ」', duration: 900, func: milkyWay } },
+                        { type: 'spell', hp: 5000 * 0.3, card: { name: '魔符「スターダストレヴァリエ」', duration: 900, func: stardustReverie } },
+                        { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: marisaNon2 },
+                        { type: 'spell', hp: 6000 * 0.3, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 1200, func: nonDirectionalLaser } },
+                        { type: 'spell', hp: 7000 * 0.3, card: { name: '恋符「マスタースパーク」', duration: 700, func: masterSpark } },
+                        { type: 'spell', hp: 7000 * 0.3, card: { name: '光符「アースライトレイ」', duration: 1200, func: earthlightRay } },
+                        { type: 'spell', hp: 10000 * 0.3, card: { name: '魔砲「ファイナルスパーク」', duration: 900, func: finalSpark } },
+                    ];
+                }
+                // startNextBossPhase(); // BUG FIX: Do not call here, call after dialogue.
+            }
+
+            async function handleBossDialogue(name) {
+                dialogueBox.style.display = 'block';
+                let prompt, schema, defaultDialogue;
+
+                if (name === 'reimu') {
+                    dialogueBox.innerHTML = '博麗霊夢が現れた...';
+                    prompt = "東方Projectの河城にとりと博麗霊夢の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。霊夢は面倒くさがりだが腕の立つ巫女。会話はJSON配列で、各オブジェクトに 'character' (Nitori or Reimu) と 'line' (セリフ) のキーを含めてください。";
+                    defaultDialogue = '<p><strong>霊夢:</strong> ちょっと、あなた。神社の裏で変な機械を動かすのはやめてちょうだい。</p><p><strong>にとり:</strong> ひゃっ！？み、見つかった！これはただの実験で…あ、あなたには渡さないんだから！</p>';
+                } else {
+                    dialogueBox.innerHTML = '霧雨魔理沙が現れた...';
+                    prompt = "東方Projectの河城にとりと霧雨魔理沙の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。魔理沙は派手な魔法と面白いものが好きな魔法使い。会話はJSON配列で、各オブジェクトに 'character' (Nitori or Marisa) と 'line' (セリフ) のキーを含めてください。";
+                    defaultDialogue = '<p><strong>魔理沙:</strong> お、なんだそのガラクタ？面白そうじゃないか！ちょっと見せてもらうぜ！</p><p><strong>にとり:</strong> こ、これは私の最高傑作なんだから！勝手に触らないでよ！</p>';
+                }
+                schema = { type: "ARRAY", items: { type: "OBJECT", properties: { character: { type: "STRING" }, line: { type: "STRING" } }, required: ["character", "line"] } };
+                const dialogue = await callGemini(prompt, schema);
+
+                let dialogueContent = '';
+                if (dialogue) {
+                    dialogue.forEach(entry => {
+                        dialogueContent += `<p><strong>${entry.character}:</strong> ${entry.line}</p>`;
+                    });
+                } else {
+                    dialogueContent = defaultDialogue;
+                }
+
+                dialogueBox.innerHTML = `<div>${dialogueContent}</div><div class="continue-prompt">▼ クリックして続行</div>`;
+
+                const continueFight = () => {
+                    dialogueBox.style.display = 'none';
+                    startNextBossPhase(); // BUG FIX: Start the first phase here
+                    boss.phase = 1;
+                };
+                dialogueBox.addEventListener('click', continueFight, { once: true });
+            }
+
+            function startNextBossPhase() {
+                boss.currentPhaseIndex++;
+                if (boss.currentPhaseIndex >= boss.phases.length) {
+                    bossDefeated();
+                    return;
+                }
+                const currentPhase = boss.phases[boss.currentPhaseIndex];
+                boss.hp = currentPhase.hp;
+                boss.maxHp = currentPhase.hp;
+                boss.phaseTimer = 0;
+                boss.invincible = true;
+                boss.visible = true;
+                boss.activeCircles = [];
+                boss.orbs = [];
+                enemyBullets = []; lasers = [];
+                setTimeout(() => { boss.invincible = false; }, 1500);
+
+                if (currentPhase.type === 'spell') {
+                    spellCardNameEl.textContent = currentPhase.card.name;
+                    showOverlayMessage(`<span>${currentPhase.card.name}</span>`, 120);
+                } else {
+                    spellCardNameEl.textContent = '';
+                }
+                boss.targetX = Math.random() * (canvas.width - 200) + 100;
+                boss.targetY = Math.random() * 100 + 100;
+            }
+
+            function bossDefeated() {
+                createExplosion(boss.x, boss.y, '#00ffff', 200, 5000);
+                score += 100000;
+                boss.active = false;
+
+                if (stage.bossQueue.length > 0) {
+                    const nextBoss = stage.bossQueue.shift();
+                    showOverlayMessage("WARNING!", 180);
+                    setTimeout(() => spawnBoss(nextBoss), 3000);
+                } else {
+                    showOverlayMessage("ALL CLEAR!", 300);
+                    stopMusic();
+                    setTimeout(() => {
+                         gameStarted = false;
+                         startScreen.style.display = 'flex';
+                    }, 5000);
+                }
+            }
+
+            // --- Non-Spell Patterns ---
+            function reimuNon1() {
+                if (boss.phaseTimer % 20 === 0) {
+                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    for (let i = -1; i <= 1; i++) {
+                        createEnemyBullet(boss.x, boss.y, 4, angle + i * 0.2, '#ffaaaa', 8, 'amulet');
+                    }
+                }
+            }
+            function reimuNon2() {
+                if (boss.phaseTimer % 60 === 0) {
+                    const side = Math.random() < 0.5 ? 0 : canvas.width;
+                    for(let y = 0; y < canvas.height; y+= 40) {
+                        const angle = side === 0 ? 0 : Math.PI;
+                         createEnemyBullet(side, y, 2, angle, '#aaaaff', 6);
+                    }
+                }
+            }
+            function marisaNon1() {
+                 if (boss.phaseTimer % 8 === 0) {
+                    const angle = boss.phaseTimer * 0.1;
+                    createEnemyBullet(boss.x, boss.y, 4, angle, '#ffff88', 10, 'star');
+                    createEnemyBullet(boss.x, boss.y, 4, angle + Math.PI, '#ffff88', 10, 'star');
+                }
+            }
+            function marisaNon2() {
+                if (boss.phaseTimer % 15 === 0) {
+                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    const speed = 3 + Math.random();
+                    createEnemyBullet(boss.x, boss.y, speed, angle, '#88ff88', 7);
+                }
+            }
+
+            // --- Reimu Spell Cards ---
+            function duplexBarrier() {
+                if (boss.phaseTimer % 60 === 0) {
+                    const baseAngle = Math.random() * Math.PI * 2;
+                    for (let j = 0; j < 2; j++) {
+                        for (let i = 0; i < 16; i++) {
+                            const angle = baseAngle + (i * Math.PI * 2 / 16);
+                            createEnemyBullet(boss.x, boss.y, 2.5 + j, angle, j === 0 ? '#ffaaaa' : '#aaaaff', 7, 'amulet');
+                        }
+                    }
+                }
+            }
+            function fantasySeal() {
+                if (boss.phaseTimer % 25 === 0) {
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i * Math.PI * 2 / 6) + boss.phaseTimer * 0.05;
+                        const bullet = createEnemyBullet(boss.x, boss.y, 0, angle, '#ff5555', 10);
+                        bullet.speed = 2;
+                        bullet.turnRate = 0.02;
+                        bullet.life = 180;
+                        bullet.update = function() {
+                            this.life--;
+                            if (this.life < 0) this.alpha = (this.alpha || 1) - 0.05;
+                            if (this.alpha < 0.1) enemyBullets.splice(enemyBullets.indexOf(this), 1);
+                            const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                            let angleDiff = targetAngle - this.angle;
+                            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                            this.angle += Math.max(-this.turnRate, Math.min(this.turnRate, angleDiff));
+                            this.dx = Math.cos(this.angle) * this.speed;
+                            this.dy = Math.sin(this.angle) * this.speed;
+                            this.x += this.dx;
+                            this.y += this.dy;
+                        }
+                    }
+                }
+            }
+
+            function evilSealingCircle() {
+                if (boss.phaseTimer % 200 === 1) {
+                    boss.activeCircles.push({
+                        x: player.x, y: player.y, radius: 200, life: 300,
+                        spawnCooldown: 0, rotation: Math.random() * Math.PI * 2,
+                    });
+                }
+                for (let i = boss.activeCircles.length - 1; i >= 0; i--) {
+                    const circle = boss.activeCircles[i];
+                    circle.life--;
+                    circle.spawnCooldown--;
+                    if (circle.life > 60 && circle.spawnCooldown <= 0) {
+                        circle.spawnCooldown = 5;
+                        circle.rotation += 0.05;
+                        for (let j = 0; j < 8; j++) {
+                            const angle = circle.rotation + (j * Math.PI * 2 / 8);
+                            const sx = circle.x + Math.cos(angle) * circle.radius;
+                            const sy = circle.y + Math.sin(angle) * circle.radius;
+                            const bulletAngle = angle + Math.PI;
+                            createEnemyBullet(sx, sy, 3, bulletAngle, '#aaaaff', 6, 'amulet');
+                        }
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = Math.min(1, (300 - circle.life) / 60) * Math.min(1, circle.life / 60);
+                    ctx.strokeStyle = '#ff8888';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                    if (circle.life <= 0) {
+                        boss.activeCircles.splice(i, 1);
+                    }
+                }
+            }
+
+            function greatDivineBarrier() {
+                if (boss.phaseTimer === 1) {
+                    boss.orbs = [];
+                    for (let i = 0; i < 2; i++) {
+                        boss.orbs.push({
+                            angle: i * Math.PI, radius: 250, shootCooldown: 0, rotation: 0,
+                        });
+                    }
+                }
+                if (boss.orbs) {
+                    boss.orbs.forEach(orb => {
+                        orb.angle += 0.005;
+                        const orbX = canvas.width / 2 + Math.cos(orb.angle) * orb.radius;
+                        const orbY = 200 + Math.sin(orb.angle) * orb.radius;
+                        orb.rotation += 0.1;
+                        ctx.save();
+                        ctx.translate(orbX, orbY);
+                        ctx.rotate(orb.rotation);
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, -10, 10, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 10, 10, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 10, 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -10, 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.restore();
+
+                        orb.shootCooldown--;
+                        if (orb.shootCooldown <= 0) {
+                            orb.shootCooldown = 15;
+                            const angleToPlayer = Math.atan2(player.y - orbY, player.x - orbX);
+                            for (let i = -1; i <= 1; i++) {
+                                createEnemyBullet(orbX, orbY, 4, angleToPlayer + i * 0.15, '#ff8888', 6, 'amulet');
+                            }
+                        }
+                    });
+                }
+                if (boss.phaseTimer % 30 === 0) {
+                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ff5555', 8);
+                }
+            }
+
+            // --- Marisa Spell Cards ---
+            function milkyWay() {
+                if (boss.phaseTimer % 4 === 0) {
+                    const x = Math.random() * canvas.width;
+                    const speed = 2 + Math.random() * 2;
+                    createEnemyBullet(x, 0, speed, Math.PI / 2, '#ffffaa', 8, 'star');
+                }
+            }
+            function stardustReverie() {
+                if (boss.phaseTimer % 2 === 0) {
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height;
+                    const bullet = createEnemyBullet(x, y, 0, 0, '#ddddff', 6, 'star');
+                    bullet.alpha = 0;
+                    bullet.life = 60;
+                    bullet.update = function() {
+                        this.life--;
+                        if (this.life > 30) this.alpha = 1 - (this.life - 30) / 30;
+                        else this.alpha = this.life / 30;
+                        if (this.life === 30) {
+                            this.angle = Math.random() * Math.PI * 2;
+                            this.speed = 3;
+                            this.dx = Math.cos(this.angle) * this.speed;
+                            this.dy = Math.sin(this.angle) * this.speed;
+                        }
+                        if (this.life < 30) { this.x += this.dx; this.y += this.dy; }
+                        if (this.life <= 0) enemyBullets.splice(enemyBullets.indexOf(this), 1);
+                    }
+                }
+            }
+            function nonDirectionalLaser() {
+                if (boss.phaseTimer % 90 === 0) {
+                    const angle = Math.random() * Math.PI * 2;
+                    for (let i = 0; i < 5; i++) {
+                        try { if (sfx) sfx.laser.triggerAttackRelease('A3', '1s'); } catch(e) { console.error(e); }
+                        createLaser(boss.x, boss.y, 10, angle + (i * Math.PI * 2 / 5), 120, 'rgb(255,255,100)');
+                    }
+                }
+            }
+            function masterSpark() {
+                if (boss.phaseTimer > 60 && boss.phaseTimer % 240 === 1) {
+                    try { if (sfx) sfx.laser.triggerAttackRelease('A2', '4s'); } catch(e) { console.error(e); }
+                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    createLaser(boss.x, boss.y, 80, angle, 180, 'rgb(255,255,255)');
+                }
+            }
+            function earthlightRay() {
+                if (boss.phaseTimer % 40 === 0) {
+                    try { if (sfx) sfx.laser.triggerAttackRelease('G3', '2s'); } catch(e) { console.error(e); }
+                    const x = player.x + (Math.random() - 0.5) * 100;
+                    createLaser(x, canvas.height, 15, -Math.PI / 2, 120, 'rgb(100,255,100)');
+                }
+            }
+            function finalSpark() {
+                 if (boss.phaseTimer > 60 && boss.phaseTimer % 300 === 1) {
+                    try { if (sfx) sfx.laser.triggerAttackRelease('A1', '8s'); } catch(e) { console.error(e); }
+                    const laser = createLaser(boss.x, boss.y, 200, Math.atan2(player.y - boss.y, player.x - boss.x), 240, 'rgb(255,100,255)');
+                    laser.update = function() {
+                        const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                        let angleDiff = targetAngle - this.angle;
+                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                        this.angle += angleDiff * 0.01;
+                    }
+                }
+            }
+
+            // --- ユーティリティ ---
+            function createEnemyBullet(x, y, speed, angle, color, radius, shape = 'circle') {
+                const bullet = {
+                    x, y, radius, color, shape,
+                    dx: Math.cos(angle) * speed,
+                    dy: Math.sin(angle) * speed,
+                    angle: shape === 'amulet' || shape === 'star' ? angle : 0,
+                    grazed: false,
+                };
+                enemyBullets.push(bullet);
+                return bullet;
+            }
+
+            function createLaser(x, y, width, angle, timer, color) {
+                const laser = { x, y, width, angle, timer, color, alpha: 1 };
+                lasers.push(laser);
+                return laser;
+            }
+
+            function createExplosion(x, y, color, count, life = 1) {
+                const c = color.match(/\w\w/g).map((c) => parseInt(c, 16));
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 5 + 2;
+                    particles.push({
+                        x, y, radius: Math.random() * 3 + 1,
+                        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                        r: c[0], g: c[1], b: c[2], alpha: 1 * life,
+                    });
+                }
+            }
+
+            function showOverlayMessage(html, duration) {
+                messageOverlay.innerHTML = html;
+                messageOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    messageOverlay.style.display = 'none';
+                }, duration * 1000 / 60);
+            }
+
+            function gameOver() {
+                gameStarted = false;
+                stopMusic();
+                showOverlayMessage("GAME OVER", 300);
+                setTimeout(() => {
+                     startScreen.style.display = 'flex';
+                }, 5000);
+            }
+
+            // --- メインループ ---
+            function gameLoop() {
+                try {
+                    if (!gameStarted) return;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // 更新処理
+                    updateStage();
+                    updatePlayer();
+                    updateBullets();
+                    updatePowerUps();
+                    updateEnemyBullets();
+                    updateLasers();
+                    updateEnemies();
+                    updateBoss();
+                    updateParticles();
+                    checkCollisions();
+
+                    // 描画処理
+                    drawEnemies();
+                    drawBoss();
+                    drawPlayer();
+                    drawBullets();
+                    drawPowerUps();
+                    drawLasers();
+                    drawEnemyBullets();
+                    drawParticles();
+                    drawPlayerBomb();
+                    updateUI();
+
+                    gameTime++;
+                    requestAnimationFrame(gameLoop);
+                } catch (e) {
+                    console.error("An error occurred in the game loop:", e);
+                    if (gameStarted) {
+                        requestAnimationFrame(gameLoop);
+                    }
+                }
+            }
+        };
+    </script>
+</body>
+</html>
