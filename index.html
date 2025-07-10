@@ -211,22 +211,12 @@
                 padding: 5px;
             }
             #sidebar > div:first-child { /* Info block */
-                flex-basis: 60%;
+                flex-basis: 100%;
                 font-size: 12px;
             }
             #sidebar .info {
                 font-size: 12px;
                 margin-bottom: 2px;
-            }
-            #sidebar > div:last-child { /* Image block */
-                flex-basis: 35%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-            #sidebar img {
-                max-width: 80px;
-                height: auto;
             }
             #dialogue-box {
                 height: 120px;
@@ -296,11 +286,6 @@
                     </div>
                     <p id="spell-card-name"></p>
                 </div>
-                <div>
-                     <img id="player-img-display" src="https://placehold.co/180x240/a2d4ab/3a6b35" alt="河城にとりの画像" style="border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
-                     <img id="reimu-img-display" src="https://placehold.co/180x240/e6d8d8/c44d56" alt="博麗霊夢の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
-                     <img id="marisa-img-display" src="https://placehold.co/180x240/d1c4e9/673ab7" alt="霧雨魔理沙の画像" style="display:none; border-radius: 8px; border: 1px solid #fff; width: 100%; height: auto;">
-                </div>
             </div>
         </div>
     </div>
@@ -331,10 +316,6 @@
             const messageOverlay = document.getElementById('message-overlay');
             const dialogueBox = document.getElementById('dialogue-box');
             const bossDisplayName = document.getElementById('boss-display-name');
-
-            const playerImgDisplay = document.getElementById('player-img-display');
-            const reimuImgDisplay = document.getElementById('reimu-img-display');
-            const marisaImgDisplay = document.getElementById('marisa-img-display');
 
             let gameStarted = false;
             let gameTime = 0;
@@ -700,21 +681,14 @@
                 grazeEl.textContent = player.graze;
                 bombsEl.innerHTML = '&#x1F9A0;'.repeat(player.bombs);
 
-                playerImgDisplay.style.display = 'block';
-                reimuImgDisplay.style.display = 'none';
-                marisaImgDisplay.style.display = 'none';
-
                 if (boss.active) {
                     bossInfoEl.style.display = 'block';
                     const healthPercentage = Math.max(0, boss.hp / boss.maxHp);
                     bossHealthBar.style.width = `${healthPercentage * 100}%`;
 
-                    playerImgDisplay.style.display = 'none';
                     if (currentBossName === 'reimu') {
-                        reimuImgDisplay.style.display = 'block';
                         bossDisplayName.innerHTML = 'BOSS ⛩️';
                     } else if (currentBossName === 'marisa') {
-                        marisaImgDisplay.style.display = 'block';
                         bossDisplayName.innerHTML = 'BOSS 🧙';
                     }
 
@@ -1073,14 +1047,17 @@
                 boss.phase = 0;
                 boss.currentPhaseIndex = -1;
                 playMusic(name);
+                enemies = []; // ボス戦開始時にザコ敵を消去
 
                 if (name === 'reimu') {
                     boss.img = document.getElementById('reimu-img');
                     boss.phases = [
                         { type: 'non-spell', hp: 3000 * 0.3, duration: 600, func: reimuNon1 },
                         { type: 'spell', hp: 4000 * 0.3, card: { name: '夢符「二重結界」', duration: 900, func: duplexBarrier } },
+                        { type: 'spell', hp: 5000 * 0.3, card: { name: 'お札「新聞拡張団調伏」', duration: 1200, func: newspaperSubjugation } },
                         { type: 'non-spell', hp: 3000 * 0.3, duration: 600, func: reimuNon2 },
                         { type: 'spell', hp: 5000 * 0.3, card: { name: '霊符「夢想封印」', duration: 900, func: fantasySeal } },
+                        { type: 'spell', hp: 6000 * 0.3, card: { name: '結界「パパラッチ撃退結界」', duration: 1200, func: paparazziBoundary } },
                         { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: reimuNon1 },
                         { type: 'spell', hp: 6000 * 0.3, card: { name: '夢符「封魔陣」', duration: 1200, func: evilSealingCircle } },
                         { type: 'spell', hp: 8000 * 0.3, card: { name: '神域「神霊大結界」', duration: 1500, func: greatDivineBarrier } },
@@ -1106,11 +1083,11 @@
 
                 if (name === 'reimu') {
                     dialogueBox.innerHTML = '博麗霊夢が現れた...';
-                    prompt = "東方Projectの河城にとりと博麗霊夢の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。霊夢は面倒くさがりだが腕の立つ巫女。会話はJSON配列で、各オブジェクトに 'character' (Nitori or Reimu) と 'line' (セリフ) のキーを含めてください。";
+                    prompt = "東方Projectの河城にとりと博麗霊夢の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。霊夢は面倒くさがりだが腕の立つ巫女。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '霊夢') と 'line' (セリフ) のキーを含めてください。";
                     defaultDialogue = '<p><strong>霊夢:</strong> ちょっと、あなた。神社の裏で変な機械を動かすのはやめてちょうだい。</p><p><strong>にとり:</strong> ひゃっ！？み、見つかった！これはただの実験で…あ、あなたには渡さないんだから！</p>';
                 } else {
                     dialogueBox.innerHTML = '霧雨魔理沙が現れた...';
-                    prompt = "東方Projectの河城にとりと霧雨魔理沙の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。魔理沙は派手な魔法と面白いものが好きな魔法使い。会話はJSON配列で、各オブジェクトに 'character' (Nitori or Marisa) と 'line' (セリフ) のキーを含めてください。";
+                    prompt = "東方Projectの河城にとりと霧雨魔理沙の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。魔理沙は派手な魔法と面白いものが好きな魔法使い。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '魔理沙') と 'line' (セリフ) のキーを含めてください。";
                     defaultDialogue = '<p><strong>魔理沙:</strong> お、なんだそのガラクタ？面白そうじゃないか！ちょっと見せてもらうぜ！</p><p><strong>にとり:</strong> こ、これは私の最高傑作なんだから！勝手に触らないでよ！</p>';
                 }
                 schema = { type: "ARRAY", items: { type: "OBJECT", properties: { character: { type: "STRING" }, line: { type: "STRING" } }, required: ["character", "line"] } };
@@ -1329,6 +1306,49 @@
                 }
             }
 
+            function newspaperSubjugation() {
+                if (boss.phaseTimer % 20 === 0) {
+                    const x = Math.random() * canvas.width;
+                    const bullet = createEnemyBullet(x, 0, 1, Math.PI / 2, '#ffffff', 8, 'amulet');
+                    bullet.life = 120 + Math.random() * 60;
+                    bullet.update = function() {
+                        this.life--;
+                        if (this.life <= 0) {
+                            const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.dx = Math.cos(angle) * 6;
+                            this.dy = Math.sin(angle) * 6;
+                            this.update = undefined; // Stop this logic after charge
+                        }
+                        this.x += this.dx;
+                        this.y += this.dy;
+                    }
+                }
+            }
+
+            function paparazziBoundary() {
+                if (boss.phaseTimer % 150 === 1) {
+                    for (let y = 0; y < canvas.height; y += 20) {
+                        createEnemyBullet(0, y, 2, 0, '#ffcccc', 5);
+                        createEnemyBullet(canvas.width, y, -2, 0, '#ffcccc', 5);
+                    }
+                }
+                if (boss.phaseTimer % 100 === 1) {
+                    const flash = { x: player.x, y: player.y, radius: 0, life: 60 };
+                    const flashWarning = createEnemyBullet(flash.x, flash.y, 0, 0, 'rgba(255,255,255,0.1)', 100);
+                    flashWarning.life = 60;
+                    flashWarning.update = function() {
+                        this.life--;
+                        this.alpha = 1 - (this.life / 60);
+                        if (this.life <= 0) enemyBullets.splice(enemyBullets.indexOf(this), 1);
+                    }
+                    setTimeout(() => {
+                        if (!gameStarted || !boss.active) return;
+                        createExplosion(flash.x, flash.y, '#ffffff', 32);
+                    }, 1000);
+                }
+            }
+
+
             // --- Marisa Spell Cards ---
             function milkyWay() {
                 if (boss.phaseTimer % 4 === 0) {
@@ -1530,8 +1550,6 @@
                     drawParticles();
                     drawPlayerBomb();
                     updateUI();
-
-                    ctx.clearRect(canvas.width - 20, canvas.height - 20, 20, 20);
 
                     gameTime++;
                     requestAnimationFrame(gameLoop);
