@@ -3,8 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>東方紅白魔 ~ Dual Boss Shooter ~</title>
+    <title>東方AI紅白魔 ~ Dual Boss Shooter ~</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。PCでもスマホでも遊べます。">
+    <meta name="keywords" content="東方, 東方Project, 弾幕, シューティング, STG, ゲーム, 無料, AI, Gemini, 博麗霊夢, 霧雨魔理沙, にとり">
+    <meta name="author" content="Gemini">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="東方AI紅白魔 ~ Dual Boss Shooter ~">
+    <meta property="og:description" content="AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。">
+    <meta property="og:image" content="https://peutes.github.io/toho_kouhakuma/img/title.png">
+    <meta property="og:url" content="https://peutes.github.io/toho_kouhakuma/">
+
+    <!-- Twitter Card -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://peutes.github.io/toho_kouhakuma/">
+    <meta property="twitter:title" content="東方AI紅白魔 ~ Dual Boss Shooter ~">
+    <meta property="twitter:description" content="AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。">
+    <meta property="twitter:image" content="https://peutes.github.io/toho_kouhakuma/img/title.png">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "東方AI紅白魔 ~ Dual Boss Shooter ~",
+      "description": "AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。",
+      "genre": ["Shooter", "Bullet Hell", "Danmaku"],
+      "playMode": "SinglePlayer",
+      "applicationCategory": "Game",
+      "operatingSystem": "Windows, MacOS, Linux, iOS, Android, Web browser",
+      "author": {
+        "@type": "Person",
+        "name": "Gemini"
+      }
+    }
+    </script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
         html, body {
@@ -84,7 +123,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            padding: 5px 10px; /* 上下のpaddingを縮小 */
+            padding: 5px 10px;
             box-sizing: border-box;
             background: rgba(28, 12, 28, 0.7);
             z-index: 50;
@@ -96,16 +135,16 @@
             align-items: center;
         }
         #boss-name-container h3 {
-            font-size: 14px; /* 文字サイズを縮小 */
+            font-size: 14px;
             margin: 0;
         }
         #boss-spell-lives {
             color: #ffc4e1;
-            font-size: 14px; /* 文字サイズを縮小 */
+            font-size: 14px;
         }
         #boss-health-bar-container {
             width: 100%;
-            height: 10px; /* 高さを半分に */
+            height: 10px;
             background-color: #555;
             border: 1px solid #fff;
             border-radius: 3px;
@@ -119,9 +158,9 @@
             transition: width 0.2s ease-out;
         }
         #spell-card-name {
-            margin-top: 3px; /* マージンを縮小 */
-            font-size: 12px; /* 文字サイズを縮小 */
-            height: 16px; /* 高さを縮小 */
+            margin-top: 3px;
+            font-size: 12px;
+            height: 16px;
             text-align: right;
             color: #ffc4e1;
         }
@@ -140,13 +179,20 @@
             cursor: pointer;
             z-index: 100;
         }
-        #start-screen h1 {
-            font-size: 48px;
-            color: #fff;
-            text-shadow: 0 0 15px #0ff;
+        #start-screen img {
+            max-width: 85%;
+            height: auto;
         }
         #start-screen p {
             font-size: 24px;
+        }
+        #start-screen .controls {
+            margin-top: 20px;
+            text-align: left;
+        }
+        #start-screen .controls p {
+            font-size: 15px;
+            margin: 4px 0;
         }
         #message-overlay {
             position: absolute;
@@ -206,7 +252,7 @@
             #game-canvas-wrapper {
                 width: 100%;
                 flex-grow: 1;
-                min-height: 0; /* flexboxのバグ対策 */
+                min-height: 0;
             }
             #game-canvas {
                 width: 100%;
@@ -214,26 +260,32 @@
             }
             #sidebar {
                 width: 100%;
-                height: 140px; /* 高さを調整 */
+                height: auto;
                 flex-shrink: 0;
                 border-left: none;
                 border-top: 2px solid #fff;
-                flex-direction: row;
-                justify-content: space-around;
-                align-items: center;
-                padding: 5px;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: stretch;
+                padding: 10px;
             }
-            #sidebar > div:first-child { /* Info block */
-                flex-basis: 100%;
+            #sidebar > div:first-child {
                 font-size: 12px;
             }
             #sidebar .info {
-                font-size: 12px;
-                margin-bottom: 2px;
+                font-size: 14px;
+                margin-bottom: 5px;
+                justify-content: flex-start;
+            }
+            #sidebar .info-label {
+                margin-right: 1em;
+            }
+            #boss-health-bar-container {
+                height: 15px;
             }
             #dialogue-box {
                 height: 120px;
-                bottom: 150px; /* サイドバーの上に配置 */
+                bottom: 10px;
                 left: 5%;
                 width: 90%;
                 font-size: 12px;
@@ -246,19 +298,22 @@
         <div id="game-container">
             <div id="game-canvas-wrapper">
                 <div id="start-screen">
-                    <h1>東方紅白魔</h1>
-                    <p>~ Dual Boss Shooter ~</p>
-                    <div style="margin-top: 40px; font-size: 16px; text-align: left;">
-                        <p><b>PC:</b></p>
-                        <p>移動: 十字キー</p>
-                        <p>ショット: Zキー</p>
-                        <p>ボム: Xキー</p>
-                        <p>低速移動: Shiftキー</p>
-                        <br>
-                        <p><b>スマホ:</b></p>
-                        <p>移動: 指でドラッグ</p>
-                        <p>ショット: オート</p>
-                        <p>ボム: ダブルタップ</p>
+                    <img src="https://peutes.github.io/toho_kouhakuma/img/title.png" alt="東方AI紅白魔">
+                    <p style="margin-top: 20px;">クリックしてスタート</p>
+                    <div class="controls">
+                        <div id="pc-controls" style="display: none;">
+                            <p><b>操作説明(PC)</b></p>
+                            <p>移動: 十字キー</p>
+                            <p>ショット: Zキー</p>
+                            <p>ボム: Xキー</p>
+                            <p>低速移動: Shiftキー</p>
+                        </div>
+                        <div id="mobile-controls" style="display: none;">
+                            <p><b>操作説明(SP)</b></p>
+                            <p>移動: 指でドラッグ</p>
+                            <p>ショット: オート</p>
+                            <p>ボム: ダブルタップ</p>
+                        </div>
                     </div>
                 </div>
                 <div id="message-overlay"></div>
@@ -277,7 +332,7 @@
             </div>
             <div id="sidebar">
                 <div>
-                    <h2 id="sidebar-title">東方紅白魔</h2>
+                    <h2 id="sidebar-title">東方AI紅白魔</h2>
                     <div class="info">
                         <span class="info-label">SCORE</span>
                         <span id="score" class="info-value">0</span>
@@ -304,11 +359,11 @@
     </div>
 
     <div id="player-images">
-        <img id="player-img" src="https://placehold.co/64x64/3a6b35/ffffff?text=N" alt="にとり">
+        <img id="player-img" src="https://peutes.github.io/toho_kouhakuma/img/nitori.png" alt="にとり">
     </div>
     <div id="boss-images">
-        <img id="reimu-img" src="https://placehold.co/128x128/ff0000/ffffff?text=R" alt="霊夢">
-        <img id="marisa-img" src="https://placehold.co/128x128/ffff00/000000?text=M" alt="魔理沙">
+        <img id="reimu-img" src="https://peutes.github.io/toho_kouhakuma/img/reimu.png" alt="霊夢">
+        <img id="marisa-img" src="https://peutes.github.io/toho_kouhakuma/img/marisa.png" alt="魔理沙">
     </div>
 
     <script>
@@ -337,6 +392,13 @@
             let currentBossName = '';
 
             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+            // Show appropriate controls
+            if (isMobile) {
+                document.getElementById('mobile-controls').style.display = 'block';
+            } else {
+                document.getElementById('pc-controls').style.display = 'block';
+            }
 
             // Touch control variables
             let isDragging = false;
@@ -396,9 +458,9 @@
                     sfx.graze.volume.value = -20;
 
                     music = {
-                        stage: new Tone.Synth({ oscillator: { type: "pulse", width: 0.6 }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.1 } }).toDestination(),
+                        stage: new Tone.Synth({ oscillator: { type: "fmsquare", harmonicity: 1.2, modulationIndex: 5 }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 } }).toDestination(),
                         reimu: new Tone.Synth({ oscillator: { type: "fmsquare", modulationType: "sawtooth", harmonicity: 0.8 }, envelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 0.2 } }).toDestination(),
-                        marisa: new Tone.Synth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.1 } }).toDestination(),
+                        marisa: new Tone.Synth({ oscillator: { type: "sawtooth", detune: 12 }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.2, release: 0.1 } }).toDestination(),
                         drums: new Tone.MembraneSynth().toDestination(),
                         cymbal: new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination(),
                         activeSeq: null
@@ -424,30 +486,28 @@
                         Tone.Transport.stop();
                         Tone.Transport.cancel();
                     }
-                } catch(e) {
-                    console.error("Error stopping music:", e);
-                }
+                } catch(e) { /* do nothing */ }
             }
 
             function playMusic(theme) {
                 try {
                     stopMusic();
-                    let melody, synth;
+                    let melody, synth, bpm;
                     switch(theme) {
                         case 'reimu':
-                            melody = ['E5','D#5','E5','F#5','G#5','B5','A5','G#5','F#5','E5','F#5','D#5','E5',null,'B4',null];
+                            melody = ['A4','G4','E4','D4', 'E4','G4','A4','C5', 'B4','A4','G4','E4', 'D4','E4','D4','C4'];
                             synth = music.reimu;
-                            Tone.Transport.bpm.value = 170;
+                            bpm = 168;
                             break;
                         case 'marisa':
-                            melody = ['C6','_','G5','_','A#5','_','G5','_','F5','_','G5','_','C6','_','G5','_'];
+                            melody = ['C5','E5','G5','C6', 'A5','G5','E5','G5', 'F5','A5','C6','F6', 'E6','D6','C6', null];
                             synth = music.marisa;
-                            Tone.Transport.bpm.value = 190;
+                            bpm = 185;
                             break;
-                        default: // Stage
-                            melody = ['G4','A4','C5','D5','C5','A4','G4',null,'F4','G4','A4','C5','A4','G4','F4',null];
+                        default: // Stage (Nitori's theme)
+                            melody = ['G4', 'A#4', 'C5', 'D5', 'G4', 'D5', 'C5', 'A#4', 'G4', 'A#4', 'C5', 'A#4', 'G4', 'F4', 'G4', null];
                             synth = music.stage;
-                            Tone.Transport.bpm.value = 160;
+                            bpm = 175;
                     }
 
                     music.activeSeq = new Tone.Sequence((time, note) => {
@@ -459,10 +519,9 @@
                         music.cymbal.triggerAttackRelease("C4", "16n", time + Tone.Time('8n').toSeconds());
                     }, '4n').start(0);
 
+                    Tone.Transport.bpm.value = bpm;
                     Tone.Transport.start();
-                } catch (e) {
-                    console.error("Error playing music:", e);
-                }
+                } catch (e) { /* do nothing */ }
             }
 
             // --- プレイヤー設定 (にとり) ---
@@ -474,7 +533,7 @@
                 speed: 5,
                 lives: 100,
                 power: 0,
-                bombs: 2,
+                bombs: 5,
                 graze: 0,
                 hitboxRadius: 5,
                 grazeRadius: 30,
@@ -493,6 +552,7 @@
             let particles = [];
             let powerUps = [];
             let lasers = [];
+            let bombItems = [];
 
             // --- ボス設定 ---
             const boss = {
@@ -549,9 +609,9 @@
             function resetGame() {
                 gameTime = 0; score = 0;
                 player.lives = 100;
-                player.power = 0; player.graze = 0; player.bombs = 2;
+                player.power = 0; player.graze = 0; player.bombs = 5;
                 player.x = canvas.width / 2; player.y = canvas.height - 100;
-                bullets = []; enemyBullets = []; enemies = []; particles = []; powerUps = []; lasers = [];
+                bullets = []; enemyBullets = []; enemies = []; particles = []; powerUps = []; lasers = []; bombItems = [];
                 boss.active = false;
                 stage.nextEventIndex = 0;
                 stage.bossQueue = ['marisa'];
@@ -635,6 +695,20 @@
                 });
             }
 
+            function drawBombItems() {
+                bombItems.forEach(b => {
+                    ctx.fillStyle = '#8888ff';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 12px DotGothic16';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('B', b.x, b.y);
+                });
+            }
+
             function drawBoss() {
                 if (!boss.active || !boss.visible || !boss.img) return;
                 ctx.drawImage(boss.img, boss.x - boss.width / 2, boss.y - boss.height / 2, boss.width, boss.height);
@@ -692,7 +766,7 @@
                 livesEl.textContent = 'x ' + player.lives;
                 powerEl.textContent = player.power;
                 grazeEl.textContent = player.graze;
-                bombsEl.innerHTML = '&#x1F9A0;'.repeat(player.bombs);
+                bombsEl.innerHTML = `&#x1F9A0; x ${player.bombs}`;
 
                 if (boss.active) {
                     bossInfoEl.style.display = 'block';
@@ -742,6 +816,12 @@
                 }
 
                 if (player.bombing) {
+                    if(player.bombTimer % 10 === 0) {
+                         if (boss.active && !boss.invincible) {
+                            boss.hp -= 134;
+                        }
+                        enemies.forEach(e => e.hp -= 66);
+                    }
                     player.bombTimer--;
                     if (player.bombTimer <= 0) player.bombing = false;
                 }
@@ -754,31 +834,39 @@
 
             function fireShot() {
                 if (player.shootCooldown > 0) return;
-                try { if(sfx) sfx.playerShot.triggerAttackRelease('A4', '8n'); } catch(e) { console.error(e); }
+                try { if(sfx) sfx.playerShot.triggerAttackRelease('A4', '8n'); } catch(e) {}
                 player.shootCooldown = 4;
                 const speed = 20;
                 bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32' });
                 const powerLevel = Math.floor(player.power / 20);
                 if (powerLevel >= 1) {
                     const angle = 0.1;
-                    bullets.push({ x: player.x - 15, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                    bullets.push({ x: player.x + 15, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    bullets.push({ x: player.x, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    bullets.push({ x: player.x, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
                 }
                  if (powerLevel >= 2) {
                     const angle = 0.2;
-                    bullets.push({ x: player.x - 20, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                    bullets.push({ x: player.x + 20, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    bullets.push({ x: player.x, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                    bullets.push({ x: player.x, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
                 }
             }
 
             function fireBomb() {
                 if (player.bombs > 0 && !player.bombing) {
-                    try { if(sfx) sfx.bomb.triggerAttackRelease("2n"); } catch(e) { console.error(e); }
+                    try { if(sfx) sfx.bomb.triggerAttackRelease("2n"); } catch(e) {}
                     player.bombs--;
                     player.bombing = true;
                     player.bombTimer = 120;
                     player.invincible = true;
                     player.invincibleTimer = 150;
+
+                    // enemyBullets = [];
+                    // lasers = [];
+                    const bombDamage = 660;
+                    enemies.forEach(e => e.hp -= bombDamage);
+                    if (boss.active && !boss.invincible) {
+                        boss.hp -= bombDamage * 2;
+                    }
                 }
             }
 
@@ -805,6 +893,21 @@
                 });
             }
 
+            function updateBombItems() {
+                bombItems.forEach((b, i) => {
+                    const dy = player.y - b.y;
+                    const dx = player.x - b.x;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < 80) {
+                        b.x += dx / dist * 6;
+                        b.y += dy / dist * 6;
+                    } else {
+                         b.y += b.speed;
+                    }
+                    if (b.y > canvas.height + b.radius) bombItems.splice(i, 1);
+                });
+            }
+
             function updateEnemyBullets() {
                 enemyBullets.forEach((b, i) => {
                     try {
@@ -814,7 +917,6 @@
                             enemyBullets.splice(i, 1);
                         }
                     } catch(e) {
-                        console.error("Error updating bullet, removing it.", e, b);
                         enemyBullets.splice(i, 1);
                     }
                 });
@@ -828,7 +930,6 @@
                         if (l.timer < 30) l.alpha = l.timer / 30;
                         if (l.timer <= 0) lasers.splice(i, 1);
                     } catch (e) {
-                         console.error("Error updating laser, removing it.", e, l);
                          lasers.splice(i, 1);
                     }
                 });
@@ -839,16 +940,16 @@
                     try {
                         e.update();
                         if (e.hp <= 0) {
-                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C2', '8n'); } catch(err) { console.error(err); }
+                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C2', '8n'); } catch(err) {}
                             score += e.score;
                             if (Math.random() < 0.3) spawnPowerUp(e.x, e.y);
+                            if (Math.random() < 0.05) spawnBombItem(e.x, e.y);
                             createExplosion(e.x, e.y, e.color, 20);
                             enemies.splice(i, 1);
                         } else if (e.y > canvas.height + e.height) {
                             enemies.splice(i, 1);
                         }
                     } catch (err) {
-                        console.error("Error updating enemy, removing it.", err, e);
                         enemies.splice(i, 1);
                     }
                 });
@@ -883,6 +984,7 @@
                         if (boss.hp <= 0) {
                             score += 50000;
                             for(let i = 0; i < 15; i++) spawnPowerUp(boss.x + (Math.random() - 0.5) * 100, boss.y + (Math.random() - 0.5) * 100);
+                            for(let i = 0; i < 3; i++) spawnBombItem(boss.x + (Math.random() - 0.5) * 100, boss.y + (Math.random() - 0.5) * 100);
                         }
                         phaseOver = true;
                     }
@@ -924,57 +1026,46 @@
                         if (Math.hypot(b.x - e.x, b.y - e.y) < e.width / 2) {
                             e.hp -= 10;
                             if(bullets[bi]) bullets.splice(bi, 1);
-                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(err) { console.error(err); }
+                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(err) {}
                             createExplosion(b.x, b.y, '#ffffff', 5);
                         }
                     });
                     if (boss.active && !boss.invincible && boss.visible && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2) {
                         boss.hp -= 10;
                         if(bullets[bi]) bullets.splice(bi, 1);
-                        try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(e) { console.error(e); }
+                        try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(e) {}
                         createExplosion(b.x, b.y, '#ffffff', 5);
                     }
                 });
 
                 powerUps.forEach((p, i) => {
                     if (Math.hypot(p.x - player.x, p.y - player.y) < player.hitboxRadius + p.radius) {
-                        player.power++;
-                        try { if(sfx) sfx.powerUp.triggerAttackRelease('G5', '8n'); } catch(e) { console.error(e); }
+                        if (player.power < 40) {
+                           player.power += 10;
+                        } else {
+                           score += 1000; // Add score if power is maxed
+                        }
+                        try { if(sfx) sfx.powerUp.triggerAttackRelease('G5', '8n'); } catch(e) {}
                         powerUps.splice(i, 1);
                     }
                 });
 
-                if (player.bombing) {
-                    const t = player.bombTimer / 120;
-                    const radius = Math.sin(Math.PI * t) * canvas.width;
-                    const damage = 5;
-                    enemyBullets.forEach((b, i) => {
-                        if (Math.hypot(b.x - player.x, b.y - player.y) < radius) {
-                            if (Math.random() < 0.5) spawnPowerUp(b.x, b.y);
-                            enemyBullets.splice(i, 1);
-                        }
-                    });
-                    enemies.forEach(e => {
-                        if (Math.hypot(e.x - player.x, e.y - player.y) < radius) e.hp -= damage;
-                    });
-                    lasers.forEach((l, i) => {
-                         if (Math.hypot(l.x - player.x, l.y - player.y) < radius) {
-                             lasers.splice(i, 1);
-                         }
-                    });
-                    if (boss.active && Math.hypot(boss.x - player.x, boss.y - player.y) < radius) {
-                        boss.hp -= damage;
+                bombItems.forEach((b, i) => {
+                    if (Math.hypot(b.x - player.x, b.y - player.y) < player.hitboxRadius + b.radius) {
+                        player.bombs++;
+                        try { if(sfx) sfx.powerUp.triggerAttackRelease('A5', '8n'); } catch(e) {}
+                        bombItems.splice(i, 1);
                     }
-                }
+                });
 
                 if (player.invincible) return;
 
                 enemyBullets.forEach(b => {
                     if (!b.grazed && Math.hypot(b.x - player.x, b.y - player.y) < player.grazeRadius) {
                         b.grazed = true; player.graze++; score += 100;
-                        try { if(sfx) sfx.graze.triggerAttackRelease("C7", "32n"); } catch(e) { console.error(e); }
+                        try { if(sfx) sfx.graze.triggerAttackRelease("C7", "32n"); } catch(e) {}
                     }
-                    if (Math.hypot(b.x - player.x, b.y - player.y) < player.hitboxRadius + b.radius) playerHit();
+                    if (!b.isWarning && Math.hypot(b.x - player.x, b.y - player.y) < player.hitboxRadius + b.radius) playerHit();
                 });
 
                 lasers.forEach(l => {
@@ -985,9 +1076,11 @@
 
             function playerHit() {
                 if (player.invincible) return;
-                try { if(sfx) sfx.playerHit.triggerAttackRelease("16n"); } catch(e) { console.error(e); }
+                try { if(sfx) sfx.playerHit.triggerAttackRelease("16n"); } catch(e) {}
                 player.lives--;
-                player.power = Math.floor(player.power / 2);
+                if (player.bombs < 5) {
+                    player.bombs = 5;
+                }
                 createExplosion(player.x, player.y, '#ff0000', 50);
                 if (player.lives < 0) {
                     gameOver();
@@ -996,8 +1089,8 @@
                     player.invincibleTimer = 180;
                     player.x = canvas.width / 2;
                     player.y = canvas.height - 100;
-                    enemyBullets = [];
-                    // lasers = []; // この行を削除
+                    // enemyBullets = []; // 被弾時の弾消しを削除
+                    // lasers = []; // 被弾時のレーザー消しを削除
                 }
             }
 
@@ -1005,42 +1098,46 @@
                 powerUps.push({ x, y, speed: 1.5, radius: 10 });
             }
 
+            function spawnBombItem(x, y) {
+                bombItems.push({ x, y, speed: 1.5, radius: 10 });
+            }
+
             function spawnEnemies(event) {
                 for (let i = 0; i < event.count; i++) {
                     let enemy;
                     const commonProps = {
-                        hp: event.type === 'sunflower' ? 100 : 30,
-                        score: event.type === 'sunflower' ? 500 : 100,
-                        shootCooldown: 60 + Math.random() * 60,
+                        hp: 30,
+                        score: 200,
+                        shootCooldown: 45 + Math.random() * 30,
                         shootTimer: 0,
                     };
                     if (event.type === 'fairy') {
                         enemy = { ...commonProps, x: 0, y: 0, width: 25, height: 25, color: '#90ee90', angle: 0, moveType: event.side, moveTimer: i * 15,
                             update() {
                                 this.moveTimer++;
-                                if (this.moveType === 'left') { this.x = 50 + Math.sin(this.moveTimer / 50) * 30; this.y += 2; }
-                                else if (this.moveType === 'right') { this.x = canvas.width - 50 - Math.sin(this.moveTimer / 50) * 30; this.y += 2; }
-                                else if (this.moveType === 'v-shape') { const side = i % 2 === 0 ? 1 : -1; this.x = canvas.width / 2 + side * this.moveTimer * 2; this.y = 100 + this.moveTimer * 2; }
-                                else { this.x = (canvas.width / (event.count + 1)) * (i + 1); this.y = -30 - i * 20; this.y += 2; }
+                                if (this.moveType === 'left') { this.x = 50 + Math.sin(this.moveTimer / 50) * 30; this.y += 2.5; }
+                                else if (this.moveType === 'right') { this.x = canvas.width - 50 - Math.sin(this.moveTimer / 50) * 30; this.y += 2.5; }
+                                else if (this.moveType === 'v-shape') { const side = i % 2 === 0 ? 1 : -1; this.x = canvas.width / 2 + side * this.moveTimer * 2.5; this.y = 100 + this.moveTimer * 2.5; }
+                                else { this.x = (canvas.width / (event.count + 1)) * (i + 1); this.y = -30 - i * 20; this.y += 2.5; }
                                 this.shootTimer++;
                                 if (this.shootTimer > this.shootCooldown) {
                                     this.shootTimer = 0;
                                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                                    createEnemyBullet(this.x, this.y, 3, angle, '#ff8888', 5);
+                                    createEnemyBullet(this.x, this.y, 4, angle, '#ff8888', 5);
                                 }
                             }
                         };
                     } else if (event.type === 'sunflower') {
-                        enemy = { ...commonProps, x: event.side === 'left' ? 150 : (event.side === 'right' ? 450 : 300), y: -30 - i * 40, width: 40, height: 40, color: '#ffcc00', angle: 0, moveTimer: 0,
+                        enemy = { ...commonProps, hp: 100, score: 500, x: event.side === 'left' ? 150 : (event.side === 'right' ? 450 : 300), y: -30 - i * 40, width: 40, height: 40, color: '#ffcc00', angle: 0, moveTimer: 0,
                             update() {
-                                if (this.y < 150 + i * 20) this.y += 1.5;
-                                this.angle += 0.02;
+                                if (this.y < 150 + i * 20) this.y += 2;
+                                this.angle += 0.03;
                                 this.shootTimer++;
                                 if (this.shootTimer > this.shootCooldown) {
                                     this.shootTimer = 0;
-                                    for (let j = 0; j < 8; j++) {
-                                        const angle = (Math.PI * 2 / 8) * j + this.moveTimer / 30;
-                                        createEnemyBullet(this.x, this.y, 2.5, angle, '#ffff00', 6);
+                                    for (let j = 0; j < 12; j++) {
+                                        const angle = (Math.PI * 2 / 12) * j + this.moveTimer / 20;
+                                        createEnemyBullet(this.x, this.y, 3, angle, '#ffff00', 6);
                                     }
                                 }
                                 this.moveTimer++;
@@ -1065,64 +1162,73 @@
                 if (name === 'reimu') {
                     boss.img = document.getElementById('reimu-img');
                     boss.phases = [
-                        { type: 'non-spell', hp: 3000 * 0.3, duration: 600, func: reimuNon1 },
-                        { type: 'spell', hp: 4000 * 0.3, card: { name: '夢符「二重結界」', duration: 900, func: duplexBarrier } },
-                        { type: 'spell', hp: 5000 * 0.3, card: { name: 'お札「新聞拡張団調伏」', duration: 1200, func: newspaperSubjugation } },
-                        { type: 'non-spell', hp: 3000 * 0.3, duration: 600, func: reimuNon2 },
-                        { type: 'spell', hp: 5000 * 0.3, card: { name: '霊符「夢想封印」', duration: 900, func: fantasySeal } },
-                        { type: 'spell', hp: 6000 * 0.3, card: { name: '結界「パパラッチ撃退結界」', duration: 1200, func: paparazziBoundary } },
-                        { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: reimuNon1 },
-                        { type: 'spell', hp: 6000 * 0.3, card: { name: '夢符「封魔陣」', duration: 1200, func: evilSealingCircle } },
-                        { type: 'spell', hp: 8000 * 0.3, card: { name: '神域「神霊大結界」', duration: 1500, func: greatDivineBarrier } },
+                        { type: 'non-spell', hp: 4000, duration: 1000, func: reimuNon1 },
+                        { type: 'spell', hp: 5000, card: { name: '夢符「二重結界」', duration: 1000, func: duplexBarrier } },
+                        { type: 'spell', hp: 5000, card: { name: 'お札「新聞拡張団調伏」', duration: 1000, func: newspaperSubjugation } },
+                        { type: 'non-spell', hp: 4000, duration: 1000, func: reimuNon2 },
+                        { type: 'spell', hp: 5000, card: { name: '霊符「夢想封印」', duration: 1000, func: fantasySeal } },
+                        { type: 'spell', hp: 5000, card: { name: '結界「パパラッチ撃退結界」', duration: 1000, func: paparazziBoundary } },
+                        { type: 'non-spell', hp: 4000, duration: 1000, func: reimuNon1 },
+                        { type: 'spell', hp: 5000, card: { name: '夢符「封魔陣」', duration: 1000, func: evilSealingCircle } },
+                        { type: 'spell', hp: 5000, card: { name: '神域「神霊大結界」', duration: 1000, func: greatDivineBarrier } },
                     ];
                 } else if (name === 'marisa') {
                     boss.img = document.getElementById('marisa-img');
                     boss.phases = [
-                        { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: marisaNon1 },
-                        { type: 'spell', hp: 5000 * 0.3, card: { name: '魔符「ミルキーウェイ」', duration: 900, func: milkyWay } },
-                        { type: 'spell', hp: 5000 * 0.3, card: { name: '魔符「スターダストレヴァリエ」', duration: 900, func: stardustReverie } },
-                        { type: 'non-spell', hp: 4000 * 0.3, duration: 600, func: marisaNon2 },
-                        { type: 'spell', hp: 6000 * 0.3, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 1200, func: nonDirectionalLaser } },
-                        { type: 'spell', hp: 7000 * 0.3, card: { name: '恋符「マスタースパーク」', duration: 700, func: masterSpark } },
-                        { type: 'spell', hp: 7000 * 0.3, card: { name: '光符「アースライトレイ」', duration: 1200, func: earthlightRay } },
-                        { type: 'spell', hp: 10000 * 0.3, card: { name: '魔砲「ファイナルスパーク」', duration: 900, func: finalSpark } },
+                        { type: 'non-spell', hp: 4000, duration: 1000, func: marisaNon1 },
+                        { type: 'spell', hp: 5000, card: { name: '魔符「ミルキーウェイ」', duration: 1000, func: milkyWay } },
+                        { type: 'spell', hp: 5000, card: { name: '魔符「スターダストレヴァリエ」', duration: 1000, func: stardustReverie } },
+                        { type: 'non-spell', hp: 4000, duration: 1000, func: marisaNon2 },
+                        { type: 'spell', hp: 5000, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 1000, func: nonDirectionalLaser } },
+                        { type: 'spell', hp: 5000, card: { name: '恋符「マスタースパーク」', duration: 1000, func: masterSpark } },
+                        { type: 'spell', hp: 5000, card: { name: '光符「アースライトレイ」', duration: 1000, func: earthlightRay } },
+                        { type: 'spell', hp: 5000, card: { name: '魔砲「ファイナルスパーク」', duration: 1000, func: finalSpark } },
                     ];
                 }
             }
 
             async function handleBossDialogue(name) {
-                dialogueBox.style.display = 'block';
-                let prompt, schema, defaultDialogue;
+                const bossNameJP = name === 'reimu' ? '博麗霊夢' : '霧雨魔理沙';
+                showOverlayMessage(`${bossNameJP}が現れた...`, 180); // 3秒表示
 
-                if (name === 'reimu') {
-                    dialogueBox.innerHTML = '博麗霊夢が現れた...';
-                    prompt = "東方Projectの河城にとりと博麗霊夢の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。霊夢は面倒くさがりだが腕の立つ巫女。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '霊夢') と 'line' (セリフ) のキーを含めてください。";
-                    defaultDialogue = '<p><strong>霊夢:</strong> ちょっと、あなた。神社の裏で変な機械を動かすのはやめてちょうだい。</p><p><strong>にとり:</strong> ひゃっ！？み、見つかった！これはただの実験で…あ、あなたには渡さないんだから！</p>';
-                } else {
-                    dialogueBox.innerHTML = '霧雨魔理沙が現れた...';
-                    prompt = "東方Projectの河城にとりと霧雨魔理沙の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。魔理沙は派手な魔法と面白いものが好きな魔法使い。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '魔理沙') と 'line' (セリフ) のキーを含めてください。";
-                    defaultDialogue = '<p><strong>魔理沙:</strong> お、なんだそのガラクタ？面白そうじゃないか！ちょっと見せてもらうぜ！</p><p><strong>にとり:</strong> こ、これは私の最高傑作なんだから！勝手に触らないでよ！</p>';
-                }
-                schema = { type: "ARRAY", items: { type: "OBJECT", properties: { character: { type: "STRING" }, line: { type: "STRING" } }, required: ["character", "line"] } };
-                const dialogue = await callGemini(prompt, schema);
+                const dialoguePromise = (async () => {
+                    let prompt, schema, defaultDialogue;
+                    if (name === 'reimu') {
+                        prompt = "東方Projectの河城にとりと博麗霊夢の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。霊夢は面倒くさがりだが腕の立つ巫女。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '霊夢') と 'line' (セリフ) のキーを含めてください。";
+                        defaultDialogue = '<p><strong>霊夢:</strong> ちょっと、あなた。神社の裏で変な機械を動かすのはやめてちょうだい。</p><p><strong>にとり:</strong> ひゃっ！？み、見つかった！これはただの実験で…あ、あなたには渡さないんだから！</p>';
+                    } else {
+                        prompt = "東方Projectの河城にとりと霧雨魔理沙の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。魔理沙は派手な魔法と面白いものが好きな魔法使い。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '魔理沙') と 'line' (セリフ) のキーを含めてください。";
+                        defaultDialogue = '<p><strong>魔理沙:</strong> お、なんだそのガラクタ？面白そうじゃないか！ちょっと見せてもらうぜ！</p><p><strong>にとり:</strong> こ、これは私の最高傑作なんだから！勝手に触らないでよ！</p>';
+                    }
+                    schema = { type: "ARRAY", items: { type: "OBJECT", properties: { character: { type: "STRING" }, line: { type: "STRING" } }, required: ["character", "line"] } };
+                    const dialogue = await callGemini(prompt, schema);
 
-                let dialogueContent = '';
-                if (dialogue) {
-                    dialogue.forEach(entry => {
-                        dialogueContent += `<p><strong>${entry.character}:</strong> ${entry.line}</p>`;
-                    });
-                } else {
-                    dialogueContent = defaultDialogue;
-                }
+                    let dialogueContent = '';
+                    if (dialogue) {
+                        dialogue.forEach(entry => {
+                            dialogueContent += `<p><strong>${entry.character}:</strong> ${entry.line}</p>`;
+                        });
+                    } else {
+                        dialogueContent = defaultDialogue;
+                    }
+                    return dialogueContent;
+                })();
 
-                dialogueBox.innerHTML = `<div>${dialogueContent}</div><div class="continue-prompt">▼ クリックして続行</div>`;
+                setTimeout(async () => {
+                    dialogueBox.style.display = 'block';
+                    dialogueBox.innerHTML = `<div><p>少女祈祷中...</p></div>`;
 
-                const continueFight = () => {
-                    dialogueBox.style.display = 'none';
-                    startNextBossPhase();
-                    boss.phase = 1;
-                };
-                dialogueBox.addEventListener('click', continueFight, { once: true });
+                    const dialogueContent = await dialoguePromise;
+
+                    dialogueBox.innerHTML = `<div>${dialogueContent}</div><div class="continue-prompt">▼ クリックして続行</div>`;
+
+                    const continueFight = () => {
+                        dialogueBox.style.display = 'none';
+                        startNextBossPhase();
+                        boss.phase = 1;
+                    };
+                    dialogueBox.addEventListener('click', continueFight, { once: true });
+                }, 3000);
             }
 
             function startNextBossPhase() {
@@ -1159,8 +1265,8 @@
 
                 if (stage.bossQueue.length > 0) {
                     const nextBoss = stage.bossQueue.shift();
-                    showOverlayMessage("WARNING!", 180);
-                    setTimeout(() => spawnBoss(nextBoss), 3000);
+                    showOverlayMessage("WARNING!", 90); // 表示時間を半分に
+                    setTimeout(() => spawnBoss(nextBoss), 1500); // 待ち時間を半分に
                 } else {
                     showOverlayMessage("ALL CLEAR!", 300);
                     stopMusic();
@@ -1173,61 +1279,68 @@
 
             // --- Non-Spell Patterns ---
             function reimuNon1() {
-                if (boss.phaseTimer % 20 === 0) {
+                if (boss.phaseTimer % 15 === 0) {
                     const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    for (let i = -1; i <= 1; i++) {
-                        createEnemyBullet(boss.x, boss.y, 4, angle + i * 0.2, '#ffaaaa', 8, 'amulet');
+                    for (let i = -2; i <= 2; i++) {
+                        createEnemyBullet(boss.x, boss.y, 5, angle + i * 0.15, '#ffaaaa', 8, 'amulet');
                     }
                 }
             }
             function reimuNon2() {
-                if (boss.phaseTimer % 60 === 0) {
+                if (boss.phaseTimer % 45 === 0) {
                     const side = Math.random() < 0.5 ? 0 : canvas.width;
-                    for(let y = 0; y < canvas.height; y+= 40) {
+                    for(let y = 0; y < canvas.height; y+= 30) {
                         const angle = side === 0 ? 0 : Math.PI;
-                         createEnemyBullet(side, y, 2, angle, '#aaaaff', 6);
+                         createEnemyBullet(side, y, 3, angle, '#aaaaff', 6, 'amulet');
                     }
                 }
             }
             function marisaNon1() {
-                 if (boss.phaseTimer % 8 === 0) {
-                    const angle = boss.phaseTimer * 0.1;
-                    createEnemyBullet(boss.x, boss.y, 4, angle, '#ffff88', 10, 'star');
-                    createEnemyBullet(boss.x, boss.y, 4, angle + Math.PI, '#ffff88', 10, 'star');
+                 if (boss.phaseTimer % 6 === 0) {
+                    const angle = boss.phaseTimer * 0.15;
+                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ffff88', 10, 'star');
+                    createEnemyBullet(boss.x, boss.y, 5, angle + Math.PI, '#ffff88', 10, 'star');
                 }
             }
             function marisaNon2() {
-                if (boss.phaseTimer % 15 === 0) {
+                if (boss.phaseTimer % 12 === 0) {
                     const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    const speed = 3 + Math.random();
+                    const speed = 4 + Math.random();
                     createEnemyBullet(boss.x, boss.y, speed, angle, '#88ff88', 7);
                 }
             }
 
             // --- Reimu Spell Cards ---
             function duplexBarrier() {
-                if (boss.phaseTimer % 60 === 0) {
+                if (boss.phaseTimer % 45 === 0) {
                     const baseAngle = Math.random() * Math.PI * 2;
                     for (let j = 0; j < 2; j++) {
-                        for (let i = 0; i < 16; i++) {
-                            const angle = baseAngle + (i * Math.PI * 2 / 16);
-                            createEnemyBullet(boss.x, boss.y, 2.5 + j, angle, j === 0 ? '#ffaaaa' : '#aaaaff', 7, 'amulet');
+                        for (let i = 0; i < 20; i++) {
+                            const angle = baseAngle + (i * Math.PI * 2 / 20);
+                            createEnemyBullet(boss.x, boss.y, 3 + j * 1.5, angle, j === 0 ? '#ffaaaa' : '#aaaaff', 7, 'amulet');
                         }
                     }
                 }
             }
             function fantasySeal() {
-                if (boss.phaseTimer % 25 === 0) {
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (i * Math.PI * 2 / 6) + boss.phaseTimer * 0.05;
-                        const bullet = createEnemyBullet(boss.x, boss.y, 0, angle, '#ff5555', 10);
-                        bullet.speed = 2;
-                        bullet.turnRate = 0.02;
-                        bullet.life = 180;
+                if (boss.phaseTimer % 20 === 0) {
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i * Math.PI * 2 / 8) + boss.phaseTimer * 0.05;
+                        const bullet = createEnemyBullet(boss.x, boss.y, 0, angle, '#ff5555', 10, 'amulet');
+                        bullet.speed = 2.5;
+                        bullet.turnRate = 0.025;
+                        bullet.life = 150;
                         bullet.update = function() {
                             this.life--;
-                            if (this.life < 0) this.alpha = (this.alpha || 1) - 0.05;
-                            if (this.alpha < 0.1) enemyBullets.splice(enemyBullets.indexOf(this), 1);
+                            if (this.life <= 0) {
+                                for (let k = 0; k < 8; k++) {
+                                    const explosionAngle = (k * Math.PI * 2 / 8);
+                                    createEnemyBullet(this.x, this.y, 4, explosionAngle, '#ffaaaa', 4, 'amulet');
+                                }
+                                const index = enemyBullets.indexOf(this);
+                                if (index > -1) enemyBullets.splice(index, 1);
+                                return;
+                            }
                             const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
                             let angleDiff = targetAngle - this.angle;
                             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -1243,9 +1356,9 @@
             }
 
             function evilSealingCircle() {
-                if (boss.phaseTimer % 200 === 1) {
+                if (boss.phaseTimer % 150 === 1) {
                     boss.activeCircles.push({
-                        x: player.x, y: player.y, radius: 200, life: 300,
+                        x: player.x, y: player.y, radius: 250, life: 300,
                         spawnCooldown: 0, rotation: Math.random() * Math.PI * 2,
                     });
                 }
@@ -1254,10 +1367,10 @@
                     circle.life--;
                     circle.spawnCooldown--;
                     if (circle.life > 60 && circle.spawnCooldown <= 0) {
-                        circle.spawnCooldown = 5;
-                        circle.rotation += 0.05;
-                        for (let j = 0; j < 8; j++) {
-                            const angle = circle.rotation + (j * Math.PI * 2 / 8);
+                        circle.spawnCooldown = 6;
+                        circle.rotation += 0.06;
+                        for (let j = 0; j < 10; j++) {
+                            const angle = circle.rotation + (j * Math.PI * 2 / 10);
                             const sx = circle.x + Math.cos(angle) * circle.radius;
                             const sy = circle.y + Math.sin(angle) * circle.radius;
                             const bulletAngle = angle + Math.PI;
@@ -1281,15 +1394,15 @@
             function greatDivineBarrier() {
                 if (boss.phaseTimer === 1) {
                     boss.orbs = [];
-                    for (let i = 0; i < 2; i++) {
+                    for (let i = 0; i < 3; i++) {
                         boss.orbs.push({
-                            angle: i * Math.PI, radius: 250, shootCooldown: 0, rotation: 0,
+                            angle: i * Math.PI * 2 / 3, radius: 250, shootCooldown: 0, rotation: 0,
                         });
                     }
                 }
                 if (boss.orbs) {
                     boss.orbs.forEach(orb => {
-                        orb.angle += 0.005;
+                        orb.angle += 0.008;
                         const orbX = canvas.width / 2 + Math.cos(orb.angle) * orb.radius;
                         const orbY = 200 + Math.sin(orb.angle) * orb.radius;
                         orb.rotation += 0.1;
@@ -1313,24 +1426,24 @@
                         }
                     });
                 }
-                if (boss.phaseTimer % 30 === 0) {
-                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ff5555', 8);
+                if (boss.phaseTimer % 25 === 0) {
+                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (Math.random() - 0.5) * 0.2;
+                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ff5555', 8, 'amulet');
                 }
             }
 
             function newspaperSubjugation() {
-                if (boss.phaseTimer % 20 === 0) {
+                if (boss.phaseTimer % 15 === 0) {
                     const x = Math.random() * canvas.width;
-                    const bullet = createEnemyBullet(x, 0, 1, Math.PI / 2, '#ffffff', 8, 'amulet');
-                    bullet.life = 120 + Math.random() * 60;
+                    const bullet = createEnemyBullet(x, 0, 1.5, Math.PI / 2, '#ffffff', 8, 'amulet');
+                    bullet.life = 90 + Math.random() * 40;
                     bullet.update = function() {
                         this.life--;
                         if (this.life <= 0) {
                             const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                            this.dx = Math.cos(angle) * 6;
-                            this.dy = Math.sin(angle) * 6;
-                            this.update = undefined; // Stop this logic after charge
+                            this.dx = Math.cos(angle) * 7;
+                            this.dy = Math.sin(angle) * 7;
+                            this.update = undefined;
                         }
                         this.x += this.dx;
                         this.y += this.dy;
@@ -1339,98 +1452,98 @@
             }
 
             function paparazziBoundary() {
-                if (boss.phaseTimer % 180 === 1) {
-                    const gapSize = 150; // 隙間のサイズを大きく
+                if (boss.phaseTimer % 150 === 1) {
+                    const gapSize = 120;
                     const gapY = Math.random() * (canvas.height - gapSize);
 
                     for (let y = 0; y < canvas.height; y += 20) {
                         if (y > gapY && y < gapY + gapSize) {
-                            continue; // 隙間の部分は弾を生成しない
+                            continue;
                         }
-                        createEnemyBullet(0, y, 2.5, 0, '#ffcccc', 5);
-                        createEnemyBullet(canvas.width, y, -2.5, 0, '#ffcccc', 5);
+                        createEnemyBullet(0, y, 3, 0, '#ffcccc', 5, 'amulet');
+                        createEnemyBullet(canvas.width, y, -3, 0, '#ffcccc', 5, 'amulet');
                     }
                 }
-                if (boss.phaseTimer % 180 === 90) { // 壁が通り過ぎた後にフラッシュ
-                    const flash = { x: player.x, y: player.y, radius: 0, life: 60 };
-                    const flashWarning = createEnemyBullet(flash.x, flash.y, 0, 0, 'rgba(255,255,255,0.1)', 100);
-                    flashWarning.life = 60;
+                if (boss.phaseTimer % 150 === 75) {
+                    const flashWarning = createEnemyBullet(player.x, player.y, 0, 0, 'rgba(255,255,255,0.1)', 120);
+                    flashWarning.life = 50;
+                    flashWarning.isWarning = true;
                     flashWarning.update = function() {
                         this.life--;
-                        this.alpha = 1 - (this.life / 60);
+                        this.alpha = 1 - (this.life / 50);
                         if (this.life <= 0) enemyBullets.splice(enemyBullets.indexOf(this), 1);
                     }
                     setTimeout(() => {
                         if (!gameStarted || !boss.active) return;
-                        createExplosion(flash.x, flash.y, '#ffffff', 32);
-                    }, 1000);
+                        createExplosion(flashWarning.x, flashWarning.y, '#ffff00', 40, 0.6);
+                    }, 800);
                 }
             }
 
 
             // --- Marisa Spell Cards ---
             function milkyWay() {
-                if (boss.phaseTimer % 4 === 0) {
+                if (boss.phaseTimer % 3 === 0) {
                     const x = Math.random() * canvas.width;
-                    const speed = 2 + Math.random() * 2;
+                    const speed = 3 + Math.random() * 3;
                     createEnemyBullet(x, 0, speed, Math.PI / 2, '#ffffaa', 8, 'star');
                 }
             }
             function stardustReverie() {
-                if (boss.phaseTimer % 2 === 0) {
+                if (boss.phaseTimer % 1 === 0) {
                     const x = Math.random() * canvas.width;
                     const y = Math.random() * canvas.height;
                     const bullet = createEnemyBullet(x, y, 0, 0, '#ddddff', 6, 'star');
                     bullet.alpha = 0;
-                    bullet.life = 60;
+                    bullet.life = 50;
                     bullet.update = function() {
                         this.life--;
-                        if (this.life > 30) this.alpha = 1 - (this.life - 30) / 30;
-                        else this.alpha = this.life / 30;
-                        if (this.life === 30) {
+                        if (this.life > 25) this.alpha = 1 - (this.life - 25) / 25;
+                        else this.alpha = this.life / 25;
+                        if (this.life === 25) {
                             this.angle = Math.random() * Math.PI * 2;
-                            this.speed = 3;
+                            this.speed = 4;
                             this.dx = Math.cos(this.angle) * this.speed;
                             this.dy = Math.sin(this.angle) * this.speed;
                         }
-                        if (this.life < 30) { this.x += this.dx; this.y += this.dy; }
+                        if (this.life < 25) { this.x += this.dx; this.y += this.dy; }
                         if (this.life <= 0) enemyBullets.splice(enemyBullets.indexOf(this), 1);
                     }
                 }
             }
             function nonDirectionalLaser() {
-                if (boss.phaseTimer % 90 === 0) {
+                if (boss.phaseTimer % 60 === 0) {
                     const angle = Math.random() * Math.PI * 2;
-                    for (let i = 0; i < 5; i++) {
-                        try { if (sfx) sfx.laser.triggerAttackRelease('A3', '1s'); } catch(e) { console.error(e); }
-                        createLaser(boss.x, boss.y, 10, angle + (i * Math.PI * 2 / 5), 120, 'rgb(255,255,100)');
+                    for (let i = 0; i < 7; i++) {
+                        try { if (sfx) sfx.laser.triggerAttackRelease('A3', '1s'); } catch(e) {}
+                        createLaser(boss.x, boss.y, 12, angle + (i * Math.PI * 2 / 7), 100, 'rgb(255,255,100)');
                     }
                 }
             }
             function masterSpark() {
-                if (boss.phaseTimer > 60 && boss.phaseTimer % 240 === 1) {
-                    try { if (sfx) sfx.laser.triggerAttackRelease('A2', '4s'); } catch(e) { console.error(e); }
+                if (boss.phaseTimer > 60 && boss.phaseTimer % 180 === 1) {
+                    try { if (sfx) sfx.laser.triggerAttackRelease('A2', '4s'); } catch(e) {}
                     const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    createLaser(boss.x, boss.y, 80, angle, 180, 'rgb(255,255,255)');
+                    createLaser(boss.x, boss.y, 150, angle, 150, 'rgb(255,255,255)');
                 }
             }
             function earthlightRay() {
-                if (boss.phaseTimer % 40 === 0) {
-                    try { if (sfx) sfx.laser.triggerAttackRelease('G3', '2s'); } catch(e) { console.error(e); }
-                    const x = player.x + (Math.random() - 0.5) * 100;
-                    createLaser(x, canvas.height, 15, -Math.PI / 2, 120, 'rgb(100,255,100)');
+                if (boss.phaseTimer % 30 === 0) {
+                    try { if (sfx) sfx.laser.triggerAttackRelease('G3', '2s'); } catch(e) {}
+                    const x = player.x + (Math.random() - 0.5) * 150;
+                    createLaser(x, canvas.height, 20, -Math.PI / 2, 100, 'rgb(100,255,100)');
                 }
             }
             function finalSpark() {
-                 if (boss.phaseTimer > 60 && boss.phaseTimer % 300 === 1) {
-                    try { if (sfx) sfx.laser.triggerAttackRelease('A1', '8s'); } catch(e) { console.error(e); }
-                    const laser = createLaser(boss.x, boss.y, 200, Math.atan2(player.y - boss.y, player.x - boss.x), 240, 'rgb(255,100,255)');
+                 if (boss.phaseTimer > 60 && boss.phaseTimer % 240 === 1) {
+                    try { if (sfx) sfx.laser.triggerAttackRelease('A1', '8s'); } catch(e) {}
+                    const laser = createLaser(boss.x, boss.y, 250, Math.atan2(player.y - boss.y, player.x - boss.x), 200, 'rgb(255,100,255)');
                     laser.update = function() {
                         const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
                         let angleDiff = targetAngle - this.angle;
                         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                        this.angle += angleDiff * 0.01;
+                        this.angle += angleDiff * 0.015;
                     }
                 }
             }
@@ -1551,6 +1664,7 @@
                     updatePlayer();
                     updateBullets();
                     updatePowerUps();
+                    updateBombItems();
                     updateEnemyBullets();
                     updateLasers();
                     updateEnemies();
@@ -1564,6 +1678,7 @@
                     drawPlayer();
                     drawBullets();
                     drawPowerUps();
+                    drawBombItems();
                     drawLasers();
                     drawEnemyBullets();
                     drawParticles();
