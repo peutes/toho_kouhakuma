@@ -303,25 +303,20 @@
                 align-items: center;
                 padding: 5px;
             }
-            #sidebar > div:first-child {
-                display: contents; /* 子要素をgrid/flexアイテムとして扱う */
-            }
-            #sidebar h2 {
-                width: 100%; /* タイトルは全幅 */
-                text-align: center;
-                margin-bottom: 5px;
-                font-size: 16px;
+            #sidebar > div {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-around;
+                width: 100%;
             }
             #sidebar .info {
-                font-size: 12px;
+                font-size: 11px; /* Make font smaller to fit */
+                flex-basis: 45%;
                 margin-bottom: 2px;
-                flex-basis: 45%; /* 各情報項目の基本幅 */
             }
-            #sidebar .info-label {
-                margin-right: 0.5em;
-            }
-            #boss-health-bar-container {
-                height: 15px;
+            #boss-info {
+                /* This should now be visible at the top of the canvas */
+                font-size: 12px;
             }
             #dialogue-box {
                 height: 160px;
@@ -583,12 +578,12 @@
             // --- ステージ設定 ---
             const stage = {
                 timeline: [
-                    { time: 120, type: 'fairy', side: 'left', count: 10 },
-                    { time: 240, type: 'fairy', side: 'right', count: 10 },
-                    { time: 360, type: 'sunflower', side: 'center', count: 2 },
-                    { time: 540, type: 'fairy', side: 'v-shape', count: 16 },
-                    { time: 720, type: 'sunflower', side: 'left', count: 2 },
-                    { time: 720, type: 'sunflower', side: 'right', count: 2 },
+                    { time: 120, type: 'fairy', side: 'left', count: 20 },
+                    { time: 240, type: 'fairy', side: 'right', count: 20 },
+                    { time: 360, type: 'sunflower', side: 'center', count: 4 },
+                    { time: 540, type: 'fairy', side: 'v-shape', count: 32 },
+                    { time: 720, type: 'sunflower', side: 'left', count: 4 },
+                    { time: 720, type: 'sunflower', side: 'right', count: 4 },
                     { time: 900, type: 'boss', name: 'reimu' }
                 ],
                 nextEventIndex: 0,
@@ -1188,10 +1183,14 @@
                         }
                         phaseOver = true;
                     }
-                    currentPhase.card.func();
+                    if (boss.canAttack) {
+                        currentPhase.card.func();
+                    }
                 } else { // non-spell
                     if (boss.hp <= 0 || boss.phaseTimer > currentPhase.duration) phaseOver = true;
-                    currentPhase.func();
+                    if (boss.canAttack) {
+                        currentPhase.func();
+                    }
                 }
 
                 if (phaseOver) startNextBossPhase();
@@ -1284,8 +1283,6 @@
 
                 if (player.invincible) return;
 
-                // ★変更: 写真フレームの当たり判定を削除
-
                 enemyBullets.forEach(b => {
                     if (!b.grazed && Math.hypot(b.x - player.x, b.y - player.y) < player.grazeRadius) {
                         b.grazed = true; player.graze++; score += 100;
@@ -1295,7 +1292,7 @@
                 });
 
                 lasers.forEach(l => {
-                    if (l.isWarning) return; // ★追加: 予告線は当たり判定を無視
+                    if (l.isWarning) return;
                     const playerDist = Math.abs((l.x - player.x) * Math.sin(l.angle) - (l.y - player.y) * Math.cos(l.angle));
 
                     const dx = player.x - l.x;
@@ -1349,7 +1346,7 @@
                         shootTimer: 0,
                     };
                     if (event.type === 'fairy') {
-                        enemy = { ...commonProps, x: 0, y: 0, width: 25, height: 25, color: '#90ee90', angle: 0, moveType: event.side, moveTimer: i * 15,
+                        enemy = { ...commonProps, x: 0, y: 0, width: 25, height: 25, color: '#90ee90', angle: 0, moveType: event.side, moveTimer: i * 25,
                             update() {
                                 this.moveTimer++;
                                 if (this.moveType === 'left') { this.x = 50 + Math.sin(this.moveTimer / 50) * 30; this.y += 2.5; }
@@ -1365,7 +1362,7 @@
                             }
                         };
                     } else if (event.type === 'sunflower') {
-                        enemy = { ...commonProps, hp: 100, score: 500, x: event.side === 'left' ? 150 : (event.side === 'right' ? 450 : 300), y: -30 - i * 40, width: 40, height: 40, color: '#ffcc00', angle: 0, moveTimer: 0,
+                        enemy = { ...commonProps, hp: 100, score: 500, x: event.side === 'left' ? 150 : (event.side === 'right' ? 450 : 300), y: -30 - i * 60, width: 40, height: 40, color: '#ffcc00', angle: 0, moveTimer: 0,
                             update() {
                                 if (this.y < 150 + i * 20) this.y += 2;
                                 this.angle += 0.03;
@@ -1389,6 +1386,7 @@
             function spawnBoss(name) {
                 currentBossName = name;
                 boss.active = true;
+                boss.visible = true; // ★修正: ボスを最初から表示
                 boss.y = -100;
                 boss.x = canvas.width / 2;
                 boss.phase = 0;
@@ -1419,6 +1417,7 @@
                         { type: 'spell', hp: 15000, card: { name: '彗星「ブレイジングスター」', duration: 1500, func: blazingStar } },
                     ];
                 }
+                handleBossDialogue(name);
             }
 
             function handleBossDialogue(name) {
@@ -1482,7 +1481,11 @@
                 boss.orbs = [];
                 boss.photos = [];
                 enemyBullets = []; lasers = [];
-                setTimeout(() => { boss.invincible = false; }, 1500);
+                boss.canAttack = false; // ★弾幕発射を制御
+                setTimeout(() => {
+                    boss.invincible = false;
+                    boss.canAttack = true; // ★カットイン後に攻撃開始
+                }, 2600);
 
                 if (currentPhase.type === 'spell') {
                     spellCardNameEl.textContent = currentPhase.card.name;
@@ -1630,10 +1633,10 @@
                     circle.life--;
                     circle.spawnCooldown--;
                     if (circle.life > 60 && circle.spawnCooldown <= 0) {
-                        circle.spawnCooldown = 12;
+                        circle.spawnCooldown = 6;
                         circle.rotation += 0.06;
-                        for (let j = 0; j < 5; j++) {
-                            const angle = circle.rotation + (j * Math.PI * 2 / 5);
+                        for (let j = 0; j < 10; j++) {
+                            const angle = circle.rotation + (j * Math.PI * 2 / 10);
                             const sx = circle.x + Math.cos(angle) * circle.radius;
                             const sy = circle.y + Math.sin(angle) * circle.radius;
                             const bulletAngle = angle + Math.PI;
@@ -1681,15 +1684,17 @@
 
                         orb.shootCooldown--;
                         if (orb.shootCooldown <= 0) {
-                            orb.shootCooldown = 30;
+                            orb.shootCooldown = 15;
                             const angleToPlayer = Math.atan2(player.y - orbY, player.x - orbX);
-                            createEnemyBullet(orbX, orbY, 4, angleToPlayer, '#ff8888', 6, 'amulet');
+                            for (let i = -1; i <= 1; i+=2) {
+                                createEnemyBullet(orbX, orbY, 4, angleToPlayer + i * 0.1, '#ff8888', 6, 'amulet');
+                            }
                         }
                     });
                 }
-                if (boss.phaseTimer % 50 === 0) {
+                if (boss.phaseTimer % 25 === 0) {
                     const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (Math.random() - 0.5) * 0.2;
-                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ff5555', 8, 'amulet');
+                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ff5555', 12, 'amulet');
                 }
             }
 
@@ -1735,34 +1740,34 @@
             }
 
             function fantasySealClump() {
-                if (boss.phaseTimer % 10 === 0) {
-                    const angleToPlayer = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    for (let i = -2; i <= 2; i++) {
-                        const spread = i * 0.1;
-                        const bullet = createEnemyBullet(boss.x, boss.y, 4.5, angleToPlayer + spread, '#d3a3ff', 8, 'amulet');
-                        bullet.turnRate = 0.012;
-                        bullet.speed = 4.5;
-                        bullet.update = function() {
-                            const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
-                            let angleDiff = targetAngle - this.angle;
-                            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                            this.angle += Math.max(-this.turnRate, Math.min(this.turnRate, angleDiff));
-                            this.dx = Math.cos(this.angle) * this.speed;
-                            this.dy = Math.sin(this.angle) * this.speed;
-                            this.x += this.dx;
-                            this.y += this.dy;
+                if ((boss.phaseTimer % 300) < 240) {
+                    if (boss.phaseTimer % 6 === 0) {
+                        const angleToPlayer = Math.atan2(player.y - boss.y, player.x - boss.x);
+                        for (let i = -2; i <= 2; i++) {
+                            const spread = i * 0.1;
+                            const bullet = createEnemyBullet(boss.x, boss.y, 4.5, angleToPlayer + spread, '#d3a3ff', 8, 'amulet');
+                            bullet.turnRate = 0.012;
+                            bullet.speed = 4.5;
+                            bullet.update = function() {
+                                const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                                let angleDiff = targetAngle - this.angle;
+                                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                                this.angle += Math.max(-this.turnRate, Math.min(this.turnRate, angleDiff));
+                                this.dx = Math.cos(this.angle) * this.speed;
+                                this.dy = Math.sin(this.angle) * this.speed;
+                                this.x += this.dx;
+                                this.y += this.dy;
+                            }
                         }
                     }
                 }
-                if (boss.phaseTimer % 90 > 45) {
-                    if (boss.phaseTimer % 30 === 0) {
-                        const ways = 12;
-                        const baseAngle = gameTime * 0.02;
-                        for (let i = 0; i < ways; i++) {
-                            const angle = baseAngle + (i * Math.PI * 2 / ways);
-                            createEnemyBullet(boss.x, boss.y, 3, angle, '#ffffff', 14);
-                        }
+                if (boss.phaseTimer % 30 === 0) {
+                    const ways = 12;
+                    const baseAngle = gameTime * 0.02;
+                    for (let i = 0; i < ways; i++) {
+                        const angle = baseAngle + (i * Math.PI * 2 / ways);
+                        createEnemyBullet(boss.x, boss.y, 3, angle, '#ffffff', 14);
                     }
                 }
             }
@@ -1869,7 +1874,7 @@
                         boss.sparkWarningLaser.timer = 1;
                     }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A2', '4s'); } catch(e) {}
-                    createLaser(boss.x, boss.y, 225, boss.sparkAngle, 120, 'rgb(255,255,255)');
+                    createLaser(boss.x, boss.y, 400, boss.sparkAngle, 120, 'rgb(255,255,255)');
                 } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 210) {
                     boss.sparkState = 'idle';
                 }
