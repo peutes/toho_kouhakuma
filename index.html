@@ -165,7 +165,7 @@
             text-align: right;
             color: #ffc4e1;
         }
-        #player-images, #boss-images {
+        #player-images, #boss-images, #enemy-images {
             display: none;
         }
         #start-screen {
@@ -401,6 +401,12 @@
         <img id="reimu-img" src="https://peutes.github.io/toho_kouhakuma/img/reimu.png" alt="霊夢">
         <img id="marisa-img" src="https://peutes.github.io/toho_kouhakuma/img/marisa.png" alt="魔理沙">
     </div>
+    <div id="enemy-images">
+        <img id="yousei-midori-img" src="https://peutes.github.io/toho_kouhakuma/img/yousei_midori.png" alt="緑の妖精">
+        <img id="yousei-kiiro-img" src="https://peutes.github.io/toho_kouhakuma/img/yousei_kiiro.png" alt="黄色の妖精">
+        <img id="reimu-ohuda-img" src="https://peutes.github.io/toho_kouhakuma/img/reimu_ohuda.png" alt="霊夢のお札">
+    </div>
+
 
     <script>
         window.onload = function() {
@@ -423,6 +429,11 @@
             const bossCutinEl = document.getElementById('boss-cutin');
             const bossCutinImg = bossCutinEl.querySelector('img');
             const spellCardCutinNameEl = document.getElementById('spell-card-cutin-name');
+
+            // ★画像読み込み
+            const youseiMidoriImg = document.getElementById('yousei-midori-img');
+            const youseiKiiroImg = document.getElementById('yousei-kiiro-img');
+            const reimuOhudaImg = document.getElementById('reimu-ohuda-img');
 
             let gameStarted = false;
             let gameTime = 0;
@@ -705,10 +716,7 @@
                     ctx.shadowColor = b.color;
                     ctx.shadowBlur = 8;
                     if (b.shape === 'amulet') {
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(-b.radius * 0.5, -b.radius, b.radius, b.radius * 2);
-                        ctx.fillStyle = '#ff0000';
-                        ctx.fillRect(-b.radius * 0.15, -b.radius * 0.7, b.radius * 0.3, b.radius * 1.4);
+                        ctx.drawImage(reimuOhudaImg, -b.radius, -b.radius * 2, b.radius * 2, b.radius * 4);
                     } else if (b.shape === 'star') {
                         ctx.fillStyle = b.color;
                         ctx.beginPath();
@@ -734,8 +742,12 @@
                     ctx.save();
                     ctx.translate(e.x, e.y);
                     ctx.rotate(e.angle);
-                    ctx.fillStyle = e.color;
-                    ctx.fillRect(-e.width / 2, -e.height / 2, e.width, e.height);
+                    if (e.img) {
+                        ctx.drawImage(e.img, -e.width / 2, -e.height / 2, e.width, e.height);
+                    } else {
+                        ctx.fillStyle = e.color;
+                        ctx.fillRect(-e.width / 2, -e.height / 2, e.width, e.height);
+                    }
                     ctx.restore();
                 });
             }
@@ -1155,9 +1167,14 @@
                 if (boss.phase === 0) {
                     boss.y += boss.speed;
                     if (boss.y >= 150) {
-                        boss.phase = -1;
+                        boss.y = 150;
+                        boss.phase = -1; // Transition to dialogue
                         handleBossDialogue(currentBossName);
                     }
+                    return; // Don't do anything else during entrance
+                }
+
+                if (boss.phase === -1) { // Waiting for dialogue to finish
                     return;
                 }
 
@@ -1386,7 +1403,7 @@
             function spawnBoss(name) {
                 currentBossName = name;
                 boss.active = true;
-                boss.visible = true; // ★修正: ボスを最初から表示
+                boss.visible = true;
                 boss.y = -100;
                 boss.x = canvas.width / 2;
                 boss.phase = 0;
