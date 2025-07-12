@@ -74,6 +74,7 @@
             position: relative;
             width: 600px;
             height: 800px;
+            overflow: hidden;
         }
         #game-canvas {
             background-color: #010517;
@@ -239,6 +240,38 @@
             animation: blinker 1.5s linear infinite;
             text-shadow: 0 0 5px #000;
         }
+        #boss-cutin {
+            position: absolute;
+            top: 150px;
+            left: 100%;
+            z-index: 60;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #boss-cutin.animate {
+            animation: boss-cutin-anim 2.5s ease-in-out forwards;
+        }
+        #boss-cutin img {
+            width: 400px;
+            height: auto;
+            border: 2px solid white;
+            box-shadow: 0 0 20px red;
+        }
+        #spell-card-cutin-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            margin-top: 10px;
+        }
+        @keyframes boss-cutin-anim {
+            0% { left: 100%; opacity: 1; }
+            20% { left: 50%; transform: translateX(-50%); opacity: 1; }
+            80% { left: 50%; transform: translateX(-50%); opacity: 1; }
+            100% { left: -100%; opacity: 0; }
+        }
 
         /* スマホ向けレスポンシブ対応 */
         @media (max-width: 850px) {
@@ -264,21 +297,28 @@
                 flex-shrink: 0;
                 border-left: none;
                 border-top: 2px solid #fff;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: stretch;
-                padding: 10px;
+                flex-direction: row; /* 横並びに変更 */
+                flex-wrap: wrap; /* 折り返しを許可 */
+                justify-content: space-around; /* スペースを均等に配置 */
+                align-items: center;
+                padding: 5px;
             }
             #sidebar > div:first-child {
-                font-size: 12px;
+                display: contents; /* 子要素をgrid/flexアイテムとして扱う */
+            }
+            #sidebar h2 {
+                width: 100%; /* タイトルは全幅 */
+                text-align: center;
+                margin-bottom: 5px;
+                font-size: 16px;
             }
             #sidebar .info {
-                font-size: 14px;
-                margin-bottom: 5px;
-                justify-content: flex-start;
+                font-size: 12px;
+                margin-bottom: 2px;
+                flex-basis: 45%; /* 各情報項目の基本幅 */
             }
             #sidebar .info-label {
-                margin-right: 1em;
+                margin-right: 0.5em;
             }
             #boss-health-bar-container {
                 height: 15px;
@@ -327,6 +367,7 @@
                     </div>
                     <p id="spell-card-name"></p>
                 </div>
+                <div id="boss-cutin"><img src="" alt="Boss Cut-in"><div id="spell-card-cutin-name"></div></div>
                 <canvas id="game-canvas" width="600" height="800"></canvas>
                 <div id="dialogue-box" style="display: none;"></div>
             </div>
@@ -384,6 +425,9 @@
             const messageOverlay = document.getElementById('message-overlay');
             const dialogueBox = document.getElementById('dialogue-box');
             const bossDisplayName = document.getElementById('boss-display-name');
+            const bossCutinEl = document.getElementById('boss-cutin');
+            const bossCutinImg = bossCutinEl.querySelector('img');
+            const spellCardCutinNameEl = document.getElementById('spell-card-cutin-name');
 
             let gameStarted = false;
             let gameTime = 0;
@@ -405,36 +449,6 @@
             let touchStartX, touchStartY;
             let playerStartX, playerStartY;
             let lastTap = 0;
-
-            // --- Gemini API ---
-            async function callGemini(prompt, schema) {
-                const apiKey = ""; // 動作させるには、ここに有効なAPIキーを入力してください
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                const payload = {
-                    contents: [{ role: "user", parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: schema
-                    }
-                };
-
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-                    const result = await response.json();
-                    if (result.candidates && result.candidates[0]?.content?.parts?.[0]) {
-                        return JSON.parse(result.candidates[0].content.parts[0].text);
-                    }
-                } catch (error) {
-                    console.error("Gemini API call failed:", error);
-                }
-                return null;
-            }
 
             // --- 音楽・効果音設定 ---
             let sfx, music;
@@ -533,7 +547,7 @@
                 speed: 5,
                 lives: 100,
                 power: 0,
-                bombs: 5,
+                bombs: 3,
                 graze: 0,
                 hitboxRadius: 5,
                 grazeRadius: 30,
@@ -543,6 +557,7 @@
                 bombing: false,
                 bombTimer: 0,
                 img: document.getElementById('player-img'),
+                options: [],
             };
 
             // --- 各種配列 ---
@@ -567,12 +582,12 @@
             // --- ステージ設定 ---
             const stage = {
                 timeline: [
-                    { time: 120, type: 'fairy', side: 'left', count: 5 },
-                    { time: 240, type: 'fairy', side: 'right', count: 5 },
-                    { time: 360, type: 'sunflower', side: 'center', count: 1 },
-                    { time: 540, type: 'fairy', side: 'v-shape', count: 8 },
-                    { time: 720, type: 'sunflower', side: 'left', count: 1 },
-                    { time: 720, type: 'sunflower', side: 'right', count: 1 },
+                    { time: 120, type: 'fairy', side: 'left', count: 10 },
+                    { time: 240, type: 'fairy', side: 'right', count: 10 },
+                    { time: 360, type: 'sunflower', side: 'center', count: 2 },
+                    { time: 540, type: 'fairy', side: 'v-shape', count: 16 },
+                    { time: 720, type: 'sunflower', side: 'left', count: 2 },
+                    { time: 720, type: 'sunflower', side: 'right', count: 2 },
                     { time: 900, type: 'boss', name: 'reimu' }
                 ],
                 nextEventIndex: 0,
@@ -609,12 +624,13 @@
             function resetGame() {
                 gameTime = 0; score = 0;
                 player.lives = 100;
-                player.power = 0; player.graze = 0; player.bombs = 5;
+                player.power = 0; player.graze = 0; player.bombs = 3;
                 player.x = canvas.width / 2; player.y = canvas.height - 100;
                 bullets = []; enemyBullets = []; enemies = []; particles = []; powerUps = []; lasers = []; bombItems = [];
                 boss.active = false;
                 stage.nextEventIndex = 0;
                 stage.bossQueue = ['marisa'];
+                updatePlayerOptions();
                 playMusic('stage');
                 updateUI();
             }
@@ -623,6 +639,31 @@
             function drawPlayer() {
                 if (player.invincible && Math.floor(player.invincibleTimer / 6) % 2 === 0) return;
                 ctx.drawImage(player.img, player.x - player.width / 2, player.y - player.height / 2, player.width, player.height);
+
+                // Draw hitbox
+                if (keys['shift'] || (isMobile && isDragging)) { // スマホでも低速移動（当たり判定表示）
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, player.hitboxRadius + 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(player.x, player.y, player.hitboxRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Draw options
+                player.options.forEach(opt => {
+                    const x = player.x + opt.x;
+                    const y = player.y + opt.y;
+                    ctx.fillStyle = 'rgba(100, 200, 255, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
             }
 
             function drawBullets() {
@@ -818,9 +859,9 @@
                 if (player.bombing) {
                     if(player.bombTimer % 10 === 0) {
                          if (boss.active && !boss.invincible) {
-                            boss.hp -= 134;
-                        }
-                        enemies.forEach(e => e.hp -= 66);
+                             boss.hp -= 268; // ★変更: ボムのダメージを2倍に
+                         }
+                         enemies.forEach(e => e.hp -= 132); // ★変更: ボムのダメージを2倍に
                     }
                     player.bombTimer--;
                     if (player.bombTimer <= 0) player.bombing = false;
@@ -835,20 +876,102 @@
             function fireShot() {
                 if (player.shootCooldown > 0) return;
                 try { if(sfx) sfx.playerShot.triggerAttackRelease('A4', '8n'); } catch(e) {}
-                player.shootCooldown = 4;
-                const speed = 20;
-                bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32' });
-                const powerLevel = Math.floor(player.power / 20);
-                if (powerLevel >= 1) {
-                    const angle = 0.1;
-                    bullets.push({ x: player.x, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                    bullets.push({ x: player.x, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
+                player.shootCooldown = 5;
+                const speed = 18;
+
+                // Nitori's main shot
+                const shotLevel = Math.floor(player.power / 10);
+                const shotCount = Math.min(5, 1 + shotLevel);
+
+                if (shotCount === 1) {
+                    bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                } else if (shotCount === 2) {
+                    bullets.push({ x: player.x - 8, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x + 8, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                } else if (shotCount === 3) {
+                    bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x - 15, y: player.y, dx: -0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x + 15, y: player.y, dx: 0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                } else if (shotCount === 4) {
+                    bullets.push({ x: player.x - 8, y: player.y, dx: -0.05 * speed, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x + 8, y: player.y, dx: 0.05 * speed, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x - 20, y: player.y, dx: -0.15 * speed, dy: -0.9 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x + 20, y: player.y, dx: 0.15 * speed, dy: -0.9 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                } else if (shotCount >= 5) {
+                    bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x - 15, y: player.y, dx: -0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x + 15, y: player.y, dx: 0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x - 30, y: player.y, dx: -0.2 * speed, dy: -0.9 * speed, radius: 5, color: '#32cd32', damage: 15 });
+                    bullets.push({ x: player.x + 30, y: player.y, dx: 0.2 * speed, dy: -0.9 * speed, radius: 5, color: '#32cd32', damage: 15 });
                 }
-                 if (powerLevel >= 2) {
-                    const angle = 0.2;
-                    bullets.push({ x: player.x, y: player.y, dx: -Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                    bullets.push({ x: player.x, y: player.y, dx: Math.sin(angle) * speed, dy: -Math.cos(angle) * speed, radius: 4, color: '#87ceeb' });
-                }
+
+                // ★★★ ここからホーミングミサイルのロジック ★★★
+                player.options.forEach(opt => {
+                    const startX = player.x + opt.x;
+                    const startY = player.y + opt.y;
+
+                    const missile = {
+                        x: startX,
+                        y: startY,
+                        radius: 6,
+                        color: '#87ceeb',
+                        damage: 25,
+                        speed: 8,
+                        angle: -Math.PI / 2, // Start by moving straight up
+                        turnRate: 0.05, // How fast it can turn (radians per frame)
+                        target: null,
+                        life: 300, // 5秒の寿命 (60fps * 5)
+                        lockedOn: false, // ターゲットをロックオンしたかどうかのフラグ
+
+                        // 弾ごとの特別な更新ロジック
+                        update: function() {
+                            this.life--;
+                            if (this.life <= 0) {
+                                const index = bullets.indexOf(this);
+                                if (index > -1) bullets.splice(index, 1);
+                                return;
+                            }
+
+                            // ターゲットがロックオンされていなければ、ターゲットを探し続ける
+                            if (!this.lockedOn) {
+                                if (!this.target || this.target.hp <= 0) {
+                                    this.target = findClosestEnemy(this.x, this.y);
+                                }
+                            }
+
+                            // ターゲットがいる場合、そちらへ向かう
+                            if (this.target) {
+                                const targetAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+                                let angleDiff = targetAngle - this.angle;
+                                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                                // ターゲットに十分近い場合、角度をロックして直進する
+                                const dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+                                if (!this.lockedOn && dist < 100 && Math.abs(angleDiff) < 0.2) {
+                                     this.lockedOn = true;
+                                }
+
+                                // ロックオンされていなければ、旋回する
+                                if (!this.lockedOn) {
+                                    if (Math.abs(angleDiff) > this.turnRate) {
+                                        this.angle += this.turnRate * Math.sign(angleDiff);
+                                    } else {
+                                        this.angle = targetAngle;
+                                    }
+                                }
+                            }
+
+                            // 計算された角度に基づいて移動
+                            this.dx = Math.cos(this.angle) * this.speed;
+                            this.dy = Math.sin(this.angle) * this.speed;
+                            this.x += this.dx;
+                            this.y += this.dy;
+                        }
+                    };
+                    bullets.push(missile);
+                });
+                 // ★★★ ホーミングミサイルのロジックここまで ★★★
             }
 
             function fireBomb() {
@@ -860,51 +983,77 @@
                     player.invincible = true;
                     player.invincibleTimer = 150;
 
-                    // enemyBullets = [];
-                    // lasers = [];
-                    const bombDamage = 660;
-                    enemies.forEach(e => e.hp -= bombDamage);
-                    if (boss.active && !boss.invincible) {
-                        boss.hp -= bombDamage * 2;
-                    }
+                    // ボム発動時に敵弾を消去
+                    enemyBullets = [];
+                    lasers = []; //レーザーも消す
                 }
             }
 
             function updateBullets() {
-                bullets.forEach((b, i) => {
-                    b.x += b.dx;
-                    b.y += b.dy;
-                    if (b.y < 0) bullets.splice(i, 1);
-                });
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const b = bullets[i];
+                    if (!b) continue; // 安全策
+                    if (b.update) {
+                        b.update(); // ホーミングミサイルなどの特殊な更新
+                    } else {
+                        b.x += b.dx;
+                        b.y += b.dy;
+                    }
+                    if (b.y < -b.radius || b.x < -b.radius || b.x > canvas.width + b.radius || b.y > canvas.height + b.radius) {
+                        bullets.splice(i, 1);
+                    }
+                }
             }
 
             function updatePowerUps() {
                 powerUps.forEach((p, i) => {
-                    const dy = player.y - p.y;
-                    const dx = player.x - p.x;
-                    const dist = Math.hypot(dx, dy);
-                    if (dist < 80) {
-                        p.x += dx / dist * 6;
-                        p.y += dy / dist * 6;
+                    const dist = Math.hypot(p.x - player.x, p.y - player.y);
+                    // 画面上部での自動回収
+                    const autoCollect = player.y < 150;
+
+                    if (dist < player.hitboxRadius + p.radius) {
+                        if (player.power < 40) {
+                           player.power += 10;
+                           updatePlayerOptions();
+                        } else {
+                           score += 1000;
+                        }
+                        try { if(sfx) sfx.powerUp.triggerAttackRelease('G5', '8n'); } catch(e) {}
+                        powerUps.splice(i, 1);
                     } else {
-                         p.y += p.speed;
+                        const dy = player.y - p.y;
+                        const dx = player.x - p.x;
+                        if (dist < 80 || autoCollect) {
+                            p.x += dx / dist * 6;
+                            p.y += dy / dist * 6;
+                        } else {
+                             p.y += p.speed;
+                        }
+                        if (p.y > canvas.height + p.radius) powerUps.splice(i, 1);
                     }
-                    if (p.y > canvas.height + p.radius) powerUps.splice(i, 1);
                 });
             }
 
             function updateBombItems() {
                 bombItems.forEach((b, i) => {
-                    const dy = player.y - b.y;
-                    const dx = player.x - b.x;
-                    const dist = Math.hypot(dx, dy);
-                    if (dist < 80) {
-                        b.x += dx / dist * 6;
-                        b.y += dy / dist * 6;
+                     const dist = Math.hypot(b.x - player.x, b.y - player.y);
+                     const autoCollect = player.y < 150;
+
+                    if (dist < player.hitboxRadius + b.radius) {
+                        if (player.bombs < 8) player.bombs++;
+                        try { if(sfx) sfx.powerUp.triggerAttackRelease('A5', '8n'); } catch(e) {}
+                        bombItems.splice(i, 1);
                     } else {
-                         b.y += b.speed;
+                        const dy = player.y - b.y;
+                        const dx = player.x - b.x;
+                        if (dist < 80 || autoCollect) {
+                            b.x += dx / dist * 6;
+                            b.y += dy / dist * 6;
+                        } else {
+                            b.y += b.speed;
+                        }
+                        if (b.y > canvas.height + b.radius) bombItems.splice(i, 1);
                     }
-                    if (b.y > canvas.height + b.radius) bombItems.splice(i, 1);
                 });
             }
 
@@ -989,7 +1138,7 @@
                         phaseOver = true;
                     }
                     currentPhase.card.func();
-                } else {
+                } else { // non-spell
                     if (boss.hp <= 0 || boss.phaseTimer > currentPhase.duration) phaseOver = true;
                     currentPhase.func();
                 }
@@ -1021,42 +1170,34 @@
 
             // --- 衝突判定 ---
             function checkCollisions() {
-                bullets.forEach((b, bi) => {
-                    enemies.forEach(e => {
-                        if (Math.hypot(b.x - e.x, b.y - e.y) < e.width / 2) {
-                            e.hp -= 10;
-                            if(bullets[bi]) bullets.splice(bi, 1);
-                            try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(err) {}
-                            createExplosion(b.x, b.y, '#ffffff', 5);
+                for (let bi = bullets.length - 1; bi >= 0; bi--) {
+                    const b = bullets[bi];
+                    if (!b) continue;
+
+                    let hit = false;
+                    for (let ei = enemies.length - 1; ei >= 0; ei--) {
+                        const e = enemies[ei];
+                        if (Math.hypot(b.x - e.x, b.y - e.y) < e.width / 2 + b.radius) {
+                            e.hp -= b.damage || 10;
+                            hit = true;
+                            break;
                         }
-                    });
-                    if (boss.active && !boss.invincible && boss.visible && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2) {
-                        boss.hp -= 10;
-                        if(bullets[bi]) bullets.splice(bi, 1);
+                    }
+
+                    if (hit) {
+                        bullets.splice(bi, 1);
+                        try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(err) {}
+                        createExplosion(b.x, b.y, '#ffffff', 5);
+                        continue;
+                    }
+
+                    if (boss.active && !boss.invincible && boss.visible && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2 + b.radius) {
+                        boss.hp -= b.damage || 10;
+                        bullets.splice(bi, 1);
                         try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(e) {}
                         createExplosion(b.x, b.y, '#ffffff', 5);
                     }
-                });
-
-                powerUps.forEach((p, i) => {
-                    if (Math.hypot(p.x - player.x, p.y - player.y) < player.hitboxRadius + p.radius) {
-                        if (player.power < 40) {
-                           player.power += 10;
-                        } else {
-                           score += 1000; // Add score if power is maxed
-                        }
-                        try { if(sfx) sfx.powerUp.triggerAttackRelease('G5', '8n'); } catch(e) {}
-                        powerUps.splice(i, 1);
-                    }
-                });
-
-                bombItems.forEach((b, i) => {
-                    if (Math.hypot(b.x - player.x, b.y - player.y) < player.hitboxRadius + b.radius) {
-                        player.bombs++;
-                        try { if(sfx) sfx.powerUp.triggerAttackRelease('A5', '8n'); } catch(e) {}
-                        bombItems.splice(i, 1);
-                    }
-                });
+                }
 
                 if (player.invincible) return;
 
@@ -1070,7 +1211,7 @@
 
                 lasers.forEach(l => {
                     const playerDist = Math.abs((l.x - player.x) * Math.sin(l.angle) - (l.y - player.y) * Math.cos(l.angle));
-                    if (playerDist < l.width / 2 + player.hitboxRadius) playerHit();
+                    if (l.alpha > 0.5 && playerDist < l.width / 2 + player.hitboxRadius) playerHit();
                 });
             }
 
@@ -1078,9 +1219,8 @@
                 if (player.invincible) return;
                 try { if(sfx) sfx.playerHit.triggerAttackRelease("16n"); } catch(e) {}
                 player.lives--;
-                if (player.bombs < 5) {
-                    player.bombs = 5;
-                }
+                updatePlayerOptions();
+
                 createExplosion(player.x, player.y, '#ff0000', 50);
                 if (player.lives < 0) {
                     gameOver();
@@ -1089,8 +1229,6 @@
                     player.invincibleTimer = 180;
                     player.x = canvas.width / 2;
                     player.y = canvas.height - 100;
-                    // enemyBullets = []; // 被弾時の弾消しを削除
-                    // lasers = []; // 被弾時のレーザー消しを削除
                 }
             }
 
@@ -1162,70 +1300,51 @@
                 if (name === 'reimu') {
                     boss.img = document.getElementById('reimu-img');
                     boss.phases = [
-                        { type: 'non-spell', hp: 4000, duration: 1000, func: reimuNon1 },
-                        { type: 'spell', hp: 5000, card: { name: '夢符「二重結界」', duration: 1000, func: duplexBarrier } },
-                        { type: 'spell', hp: 5000, card: { name: 'お札「新聞拡張団調伏」', duration: 1000, func: newspaperSubjugation } },
-                        { type: 'non-spell', hp: 4000, duration: 1000, func: reimuNon2 },
-                        { type: 'spell', hp: 5000, card: { name: '霊符「夢想封印」', duration: 1000, func: fantasySeal } },
-                        { type: 'spell', hp: 5000, card: { name: '結界「パパラッチ撃退結界」', duration: 1000, func: paparazziBoundary } },
-                        { type: 'non-spell', hp: 4000, duration: 1000, func: reimuNon1 },
-                        { type: 'spell', hp: 5000, card: { name: '夢符「封魔陣」', duration: 1000, func: evilSealingCircle } },
-                        { type: 'spell', hp: 5000, card: { name: '神域「神霊大結界」', duration: 1000, func: greatDivineBarrier } },
+                        { type: 'spell', hp: 15000, card: { name: '夢符「二重結界」', duration: 1500, func: duplexBarrier } },
+                        { type: 'spell', hp: 15000, card: { name: 'お札「新聞拡張団調伏」', duration: 1500, func: newspaperSubjugation } },
+                        { type: 'spell', hp: 15000, card: { name: '霊符「夢想封印 集」', duration: 1500, func: fantasySealClump } },
+                        { type: 'spell', hp: 15000, card: { name: '結界「パパラッチ撃退結界」', duration: 1500, func: paparazziBoundary } },
+                        { type: 'spell', hp: 15000, card: { name: '夢符「封魔陣」', duration: 1500, func: evilSealingCircle } },
+                        { type: 'spell', hp: 15000, card: { name: '神域「神霊大結界」', duration: 1500, func: greatDivineBarrier } },
+                        { type: 'spell', hp: 15000, card: { name: '境界「二重弾幕結界」', duration: 1500, func: duplexDanmakuBarrier } },
+                        { type: 'spell', hp: 15000, card: { name: '霊符「夢想妙珠」', duration: 1500, func: fantasySeal } },
                     ];
                 } else if (name === 'marisa') {
                     boss.img = document.getElementById('marisa-img');
                     boss.phases = [
-                        { type: 'non-spell', hp: 4000, duration: 1000, func: marisaNon1 },
-                        { type: 'spell', hp: 5000, card: { name: '魔符「ミルキーウェイ」', duration: 1000, func: milkyWay } },
-                        { type: 'spell', hp: 5000, card: { name: '魔符「スターダストレヴァリエ」', duration: 1000, func: stardustReverie } },
-                        { type: 'non-spell', hp: 4000, duration: 1000, func: marisaNon2 },
-                        { type: 'spell', hp: 5000, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 1000, func: nonDirectionalLaser } },
-                        { type: 'spell', hp: 5000, card: { name: '恋符「マスタースパーク」', duration: 1000, func: masterSpark } },
-                        { type: 'spell', hp: 5000, card: { name: '光符「アースライトレイ」', duration: 1000, func: earthlightRay } },
-                        { type: 'spell', hp: 5000, card: { name: '魔砲「ファイナルスパーク」', duration: 1000, func: finalSpark } },
+                        { type: 'spell', hp: 15000, card: { name: '魔符「ミルキーウェイ」', duration: 1500, func: milkyWay } },
+                        { type: 'spell', hp: 15000, card: { name: '魔符「スターダストレヴァリエ」', duration: 1500, func: stardustReverie } },
+                        { type: 'spell', hp: 15000, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 1500, func: nonDirectionalLaser } },
+                        { type: 'spell', hp: 15000, card: { name: '恋符「マスタースパーク」', duration: 1500, func: masterSpark } },
+                        { type: 'spell', hp: 15000, card: { name: '光符「アースライトレイ」', duration: 1500, func: earthlightRay } },
+                        { type: 'spell', hp: 15000, card: { name: '魔砲「ファイナルスパーク」', duration: 1500, func: finalSpark } },
+                        { type: 'spell', hp: 15000, card: { name: '星符「メテオニックシャワー」', duration: 1500, func: meteonicShower } },
+                        { type: 'spell', hp: 15000, card: { name: '光符「アステロイドベルト」', duration: 1500, func: asteroidBelt } },
+                        { type: 'spell', hp: 15000, card: { name: '彗星「ブレイジングスター」', duration: 1500, func: blazingStar } },
                     ];
                 }
             }
 
-            async function handleBossDialogue(name) {
+            function handleBossDialogue(name) {
                 const bossNameJP = name === 'reimu' ? '博麗霊夢' : '霧雨魔理沙';
                 showOverlayMessage(`${bossNameJP}が現れた...`, 180); // 3秒表示
 
-                const dialoguePromise = (async () => {
-                    let prompt, schema, defaultDialogue;
+                setTimeout(() => {
+                    let defaultDialogue;
                     if (name === 'reimu') {
-                        prompt = "東方Projectの河城にとりと博麗霊夢の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。霊夢は面倒くさがりだが腕の立つ巫女。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '霊夢') と 'line' (セリフ) のキーを含めてください。";
                         defaultDialogue = '<p><strong>霊夢:</strong> ちょっと、あなた。神社の裏で変な機械を動かすのはやめてちょうだい。</p><p><strong>にとり:</strong> ひゃっ！？み、見つかった！これはただの実験で…あ、あなたには渡さないんだから！</p>';
                     } else {
-                        prompt = "東方Projectの河城にとりと霧雨魔理沙の戦闘前の短い会話を生成してください。にとりは内気なエンジニア河童。魔理沙は派手な魔法と面白いものが好きな魔法使い。会話はJSON配列で、各オブジェクトに 'character' ('にとり' or '魔理沙') と 'line' (セリフ) のキーを含めてください。";
                         defaultDialogue = '<p><strong>魔理沙:</strong> お、なんだそのガラクタ？面白そうじゃないか！ちょっと見せてもらうぜ！</p><p><strong>にとり:</strong> こ、これは私の最高傑作なんだから！勝手に触らないでよ！</p>';
                     }
-                    schema = { type: "ARRAY", items: { type: "OBJECT", properties: { character: { type: "STRING" }, line: { type: "STRING" } }, required: ["character", "line"] } };
-                    const dialogue = await callGemini(prompt, schema);
 
-                    let dialogueContent = '';
-                    if (dialogue) {
-                        dialogue.forEach(entry => {
-                            dialogueContent += `<p><strong>${entry.character}:</strong> ${entry.line}</p>`;
-                        });
-                    } else {
-                        dialogueContent = defaultDialogue;
-                    }
-                    return dialogueContent;
-                })();
-
-                setTimeout(async () => {
                     dialogueBox.style.display = 'block';
-                    dialogueBox.innerHTML = `<div><p>少女祈祷中...</p></div>`;
-
-                    const dialogueContent = await dialoguePromise;
-
-                    dialogueBox.innerHTML = `<div>${dialogueContent}</div><div class="continue-prompt">▼ クリックして続行</div>`;
+                    dialogueBox.innerHTML = `<div>${defaultDialogue}</div><div class="continue-prompt">▼ クリックして続行</div>`;
 
                     const continueFight = () => {
                         dialogueBox.style.display = 'none';
                         startNextBossPhase();
                         boss.phase = 1;
+                        dialogueBox.removeEventListener('click', continueFight);
                     };
                     dialogueBox.addEventListener('click', continueFight, { once: true });
                 }, 3000);
@@ -1250,7 +1369,12 @@
 
                 if (currentPhase.type === 'spell') {
                     spellCardNameEl.textContent = currentPhase.card.name;
-                    showOverlayMessage(`<span>${currentPhase.card.name}</span>`, 120);
+                    spellCardCutinNameEl.textContent = currentPhase.card.name;
+                    bossCutinImg.src = boss.img.src;
+                    bossCutinEl.classList.add('animate');
+                    setTimeout(() => {
+                        bossCutinEl.classList.remove('animate');
+                    }, 2500);
                 } else {
                     spellCardNameEl.textContent = '';
                 }
@@ -1265,8 +1389,8 @@
 
                 if (stage.bossQueue.length > 0) {
                     const nextBoss = stage.bossQueue.shift();
-                    showOverlayMessage("WARNING!", 90); // 表示時間を半分に
-                    setTimeout(() => spawnBoss(nextBoss), 1500); // 待ち時間を半分に
+                    showOverlayMessage("WARNING!", 120);
+                    setTimeout(() => spawnBoss(nextBoss), 2000);
                 } else {
                     showOverlayMessage("ALL CLEAR!", 300);
                     stopMusic();
@@ -1274,39 +1398,6 @@
                          gameStarted = false;
                          startScreen.style.display = 'flex';
                     }, 5000);
-                }
-            }
-
-            // --- Non-Spell Patterns ---
-            function reimuNon1() {
-                if (boss.phaseTimer % 15 === 0) {
-                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    for (let i = -2; i <= 2; i++) {
-                        createEnemyBullet(boss.x, boss.y, 5, angle + i * 0.15, '#ffaaaa', 8, 'amulet');
-                    }
-                }
-            }
-            function reimuNon2() {
-                if (boss.phaseTimer % 45 === 0) {
-                    const side = Math.random() < 0.5 ? 0 : canvas.width;
-                    for(let y = 0; y < canvas.height; y+= 30) {
-                        const angle = side === 0 ? 0 : Math.PI;
-                         createEnemyBullet(side, y, 3, angle, '#aaaaff', 6, 'amulet');
-                    }
-                }
-            }
-            function marisaNon1() {
-                 if (boss.phaseTimer % 6 === 0) {
-                    const angle = boss.phaseTimer * 0.15;
-                    createEnemyBullet(boss.x, boss.y, 5, angle, '#ffff88', 10, 'star');
-                    createEnemyBullet(boss.x, boss.y, 5, angle + Math.PI, '#ffff88', 10, 'star');
-                }
-            }
-            function marisaNon2() {
-                if (boss.phaseTimer % 12 === 0) {
-                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    const speed = 4 + Math.random();
-                    createEnemyBullet(boss.x, boss.y, speed, angle, '#88ff88', 7);
                 }
             }
 
@@ -1480,6 +1571,30 @@
                 }
             }
 
+            // ★追加: 未実装だった霊夢のスペルカード
+            function fantasySealClump() {
+                if (boss.phaseTimer % 40 === 0) {
+                    const angleToPlayer = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    for (let i = 0; i < 12; i++) {
+                        const angle = angleToPlayer + (i - 5.5) * 0.1;
+                        const speed = 2 + (i * 0.2);
+                        createEnemyBullet(boss.x, boss.y, speed, angle, '#ff88ff', 8, 'amulet');
+                    }
+                }
+            }
+
+            function duplexDanmakuBarrier() {
+                if (boss.phaseTimer % 10 === 0) {
+                    const baseAngle1 = gameTime * 0.05;
+                    const baseAngle2 = -gameTime * 0.05;
+                    for (let i = 0; i < 2; i++) {
+                        const angle1 = baseAngle1 + i * Math.PI;
+                        const angle2 = baseAngle2 + i * Math.PI;
+                        createEnemyBullet(boss.x, boss.y, 4, angle1, '#ffaaaa', 6);
+                        createEnemyBullet(boss.x, boss.y, 4, angle2, '#aaaaff', 6);
+                    }
+                }
+            }
 
             // --- Marisa Spell Cards ---
             function milkyWay() {
@@ -1544,6 +1659,46 @@
                         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
                         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
                         this.angle += angleDiff * 0.015;
+                    }
+                }
+            }
+
+            // ★追加: 未実装だった魔理沙のスペルカード
+            function meteonicShower() {
+                if (boss.phaseTimer % 5 === 0) {
+                    const x = Math.random() * canvas.width;
+                    const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+                    createEnemyBullet(x, 0, 6, angle, '#ffffaa', 12, 'star');
+                }
+            }
+
+            function asteroidBelt() {
+                if (boss.phaseTimer % 60 === 0) {
+                    const y = 100 + Math.random() * 200;
+                    const speed = 2 + Math.random() * 2;
+                    const dir = Math.random() < 0.5 ? 1 : -1;
+                    for (let i = 0; i < 30; i++) {
+                        const x = dir > 0 ? -i * 20 : canvas.width + i * 20;
+                        const bullet = createEnemyBullet(x, y, speed * dir, 0, '#cccccc', 15);
+                        bullet.dx = speed * dir;
+                        bullet.dy = 0;
+                    }
+                }
+            }
+
+            function blazingStar() {
+                if (boss.phaseTimer % 120 === 1) {
+                    const bullet = createEnemyBullet(boss.x, boss.y, 0, 0, '#ff8800', 25, 'star');
+                    bullet.speed = 1;
+                    bullet.accel = 0.05;
+                    bullet.update = function() {
+                        const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                        this.angle = targetAngle;
+                        this.speed += this.accel;
+                        this.dx = Math.cos(this.angle) * this.speed;
+                        this.dy = Math.sin(this.angle) * this.speed;
+                        this.x += this.dx;
+                        this.y += this.dy;
                     }
                 }
             }
@@ -1653,6 +1808,51 @@
                 isDragging = false;
             }
 
+            function updatePlayerOptions() {
+                player.options = [];
+                const numOptions = Math.min(4, Math.floor(player.power / 10));
+
+                switch (numOptions) {
+                    case 1:
+                        player.options.push({ x: -30, y: 10 });
+                        break;
+                    case 2:
+                        player.options.push({ x: -30, y: 10 });
+                        player.options.push({ x: 30, y: 10 });
+                        break;
+                    case 3:
+                        player.options.push({ x: -40, y: 10 }, { x: 40, y: 10 }, { x: 0, y: 30 });
+                        break;
+                    case 4:
+                        player.options.push({ x: -40, y: 10 }, { x: 40, y: 10 }, { x: -25, y: 30 }, { x: 25, y: 30 });
+                        break;
+                }
+            }
+
+            function findClosestEnemy(x, y) {
+                let closest = null;
+                let closestDist = Infinity;
+
+                const checkTarget = (target) => {
+                    const dist = Math.hypot(x - target.x, y - target.y);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closest = target;
+                    }
+                };
+
+                if (boss.active && boss.visible) {
+                    checkTarget(boss);
+                }
+                // ボスがいない場合のみザコ敵をターゲットにする
+                if (!closest) {
+                    enemies.forEach(checkTarget);
+                }
+
+                return closest;
+            }
+
+
             // --- メインループ ---
             function gameLoop() {
                 try {
@@ -1689,6 +1889,7 @@
                     requestAnimationFrame(gameLoop);
                 } catch (e) {
                     console.error("An error occurred in the game loop:", e);
+                    // エラーが発生してもループを継続しようと試みる
                     if (gameStarted) {
                         requestAnimationFrame(gameLoop);
                     }
