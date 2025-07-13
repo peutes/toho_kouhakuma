@@ -401,6 +401,7 @@
     <div id="enemy-images">
         <img id="yousei-midori-img" src="https://peutes.github.io/toho_kouhakuma/img/yousei_midori.png" alt="緑の妖精">
         <img id="yousei-kiiro-img" src="https://peutes.github.io/toho_kouhakuma/img/yousei_kiiro.png" alt="黄色の妖精">
+        <img id="reimu-shinbun-img" src="https://peutes.github.io/toho_kouhakuma/img/reimu_shinbun.png" alt="新聞">
     </div>
 
 
@@ -428,6 +429,7 @@
 
             const youseiMidoriImg = document.getElementById('yousei-midori-img');
             const youseiKiiroImg = document.getElementById('yousei-kiiro-img');
+            const reimuShinbunImg = document.getElementById('reimu-shinbun-img');
 
             let preRenderedAssets = {};
 
@@ -536,17 +538,18 @@
 
             const player = {
                 x: canvas.width / 2, y: canvas.height - 100, width: 48, height: 48, speed: 6, lives: 100, power: 0, bombs: 3, graze: 0,
-                hitboxRadius: 2, grazeRadius: 30, shootCooldown: 0, invincible: false, invincibleTimer: 0, bombing: false, bombTimer: 0,
+                hitboxRadius: 2, grazeRadius: 30, shootCooldown: 0, invincible: false, invincibleTimer: 0, bombing: false,
                 img: document.getElementById('player-img'), options: [],
             };
 
             let bullets = [], enemyBullets = [], enemies = [], particles = [], powerUps = [], lasers = [], bombItems = [];
+            let playerBombs = [];
 
             const boss = {
                 x: canvas.width / 2, y: -100, width: 80, height: 80, speed: 2, active: false, visible: true, hp: 0, maxHp: 1,
-                state: 'INACTIVE', // INACTIVE, ENTERING, DIALOGUE, INTRO, ATTACKING
+                state: 'INACTIVE',
                 phaseTimer: 0, phases: [], currentPhaseIndex: -1, img: null, targetX: canvas.width / 2, targetY: 150,
-                familiars: [], photos: [], trails: [],
+                familiars: [],
             };
 
             const stage = {
@@ -564,13 +567,9 @@
                 keys[key] = true;
                 if (gameStarted) {
                     if (key === 'k') {
-                        enemies = [];
-                        enemyBullets = [];
                         spawnBoss('reimu');
                     }
                     if (key === 'm') {
-                        enemies = [];
-                        enemyBullets = [];
                         spawnBoss('marisa');
                     }
                 }
@@ -629,7 +628,7 @@
                 gameTime = 0; score = 0;
                 player.lives = 100; player.power = 0; player.graze = 0; player.bombs = 3;
                 player.x = canvas.width / 2; player.y = canvas.height - 100;
-                bullets = []; enemyBullets = []; enemies = []; particles = []; powerUps = []; lasers = []; bombItems = [];
+                bullets = []; enemyBullets = []; enemies = []; particles = []; powerUps = []; lasers = []; bombItems = []; playerBombs = [];
                 boss.active = false; stage.nextEventIndex = 0; stage.bossQueue = ['marisa'];
                 updatePlayerOptions(); playMusic('stage'); updateUI();
             }
@@ -669,6 +668,14 @@
                         const width = b.radius * 2; const height = b.radius * 4;
                         ctx.fillRect(-width / 2, -height / 2, width, height);
                         ctx.strokeRect(-width / 2, -height / 2, width, height);
+                        ctx.save();
+                        ctx.fillStyle = b.amuletType === 'white' ? '#dc143c' : 'white';
+                        ctx.font = 'bold 9px DotGothic16';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.rotate(Math.PI / 2);
+                        ctx.fillText('博麗', 0, 0);
+                        ctx.restore();
                     } else if (b.shape === 'star') {
                         const starTexture = preRenderedAssets.stars[b.color] || preRenderedAssets.stars['#ffffff'];
                         ctx.drawImage(starTexture, -b.radius, -b.radius, b.radius * 2, b.radius * 2);
@@ -738,12 +745,17 @@
                 });
             }
 
-            function drawPlayerBomb() {
-                if (!player.bombing) return;
-                const t = player.bombTimer / 120; const radius = Math.sin(Math.PI * t) * canvas.width;
-                const grad = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, radius);
-                grad.addColorStop(0, 'rgba(200, 255, 255, 0.8)'); grad.addColorStop(0.5, 'rgba(60, 179, 113, 0.6)'); grad.addColorStop(1, 'rgba(30, 144, 255, 0.2)');
-                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(player.x, player.y, radius, 0, Math.PI * 2); ctx.fill();
+            function drawPlayerBombs() {
+                playerBombs.forEach(b => {
+                    ctx.save();
+                    ctx.globalAlpha = b.alpha;
+                    ctx.strokeStyle = '#87CEEB';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                });
             }
 
             function drawFamiliars() {
@@ -790,18 +802,6 @@
                 if (keys['z'] || (isMobile && isDragging)) { fireShot(); }
                 if (player.shootCooldown > 0) player.shootCooldown--;
                 if (keys['x']) { fireBomb(); keys['x'] = false; }
-                if (player.bombing) {
-                    if(player.bombTimer % 10 === 0) {
-                        if (boss.active && !boss.invincible) { boss.hp -= 536; }
-                        enemies.forEach(e => e.hp -= 264);
-                    }
-                    player.bombTimer--;
-                    if (player.bombTimer <= 0) player.bombing = false;
-                }
-                if (player.invincible) {
-                    player.invincibleTimer--;
-                    if (player.invincibleTimer <= 0) player.invincible = false;
-                }
             }
 
             function fireShot() {
@@ -834,10 +834,14 @@
 
             function fireBomb() {
                 if (player.bombs > 0 && !player.bombing) {
-                    try { if(sfx) sfx.bomb.triggerAttackRelease("2n"); } catch(e) {}
-                    player.bombs--; player.bombing = true; player.bombTimer = 120;
-                    player.invincible = true; player.invincibleTimer = 150;
-                    enemyBullets = []; lasers = [];
+                    player.bombs--;
+                    player.bombing = true;
+                    player.invincible = true;
+                    player.invincibleTimer = 180;
+
+                    playerBombs.push({
+                        x: player.x, y: player.y, radius: 0, maxRadius: canvas.width / 2, life: 120, alpha: 1, expandSpeed: 8
+                    });
                 }
             }
 
@@ -879,6 +883,35 @@
                 });
             }
 
+            function updatePlayerBombs() {
+                for (let i = playerBombs.length - 1; i >= 0; i--) {
+                    const b = playerBombs[i];
+                    if (b.radius < b.maxRadius) {
+                        b.radius += b.expandSpeed;
+                    }
+                    b.life--;
+                    if (b.life < 30) {
+                        b.alpha = b.life / 30;
+                    }
+                    if (b.life <= 0) {
+                        playerBombs.splice(i, 1);
+                        player.bombing = false;
+                        continue;
+                    }
+
+                    for (let j = enemyBullets.length - 1; j >= 0; j--) {
+                        const eb = enemyBullets[j];
+                        if (Math.hypot(eb.x - b.x, eb.y - b.y) < b.radius) {
+                            enemyBullets.splice(j, 1);
+                            score += 10;
+                        }
+                    }
+                    if (boss.active && Math.hypot(boss.x - b.x, boss.y - b.y) < b.radius + boss.width / 2) {
+                        boss.hp -= 20;
+                    }
+                }
+            }
+
             function updateEnemyBullets() {
                 for (let i = enemyBullets.length - 1; i >= 0; i--) {
                     const b = enemyBullets[i];
@@ -895,14 +928,21 @@
             }
 
             function updateLasers() {
-                lasers.forEach((l, i) => {
+                for (let i = lasers.length - 1; i >= 0; i--) {
+                    const l = lasers[i];
                     try {
-                        if(l.update) l.update();
+                        if (l.update) l.update();
                         l.timer--;
-                        if (l.timer < 30) { l.alpha = l.timer / 30; }
-                        if (l.timer <= 0) { lasers.splice(i, 1); }
-                    } catch (e) { lasers.splice(i, 1); }
-                });
+                        if (l.timer < 30) {
+                            l.alpha = l.timer / 30;
+                        }
+                        if (l.timer <= 0) {
+                            lasers.splice(i, 1);
+                        }
+                    } catch (e) {
+                        lasers.splice(i, 1);
+                    }
+                }
             }
 
             function updateEnemies() {
@@ -937,7 +977,7 @@
             }
 
             function updateTrails() {
-                if (!boss.trails || boss.trails.length === 0) return;
+                 if (!boss.trails || boss.trails.length === 0) return;
                 for (let i = boss.trails.length - 1; i >= 0; i--) {
                     const t = boss.trails[i];
                     t.life--;
@@ -960,6 +1000,17 @@
                 }
             }
 
+            function updateParticles() {
+                particles.forEach((p, i) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.alpha -= 0.02;
+                    if (p.alpha <= 0) {
+                        particles.splice(i, 1);
+                    }
+                });
+            }
+
             function updateBoss() {
                 if (!boss.active) return;
 
@@ -973,9 +1024,7 @@
                         }
                         break;
                     case 'ATTACKING':
-                        if (boss.isIntro) return; // Wait for cut-in animation to finish
-
-                        if (boss.currentPhaseIndex >= boss.phases.length) return;
+                        if (boss.currentPhaseIndex < 0 || boss.currentPhaseIndex >= boss.phases.length) return;
                         const currentPhase = boss.phases[boss.currentPhaseIndex];
                         if (!currentPhase) return;
 
@@ -997,21 +1046,10 @@
                                 phaseOver = true;
                             }
                             if (boss.canAttack) { currentPhase.card.func(); }
-                        } else {
-                            if (boss.hp <= 0 || boss.phaseTimer > currentPhase.duration) phaseOver = true;
-                            if (boss.canAttack) { currentPhase.func(); }
                         }
                         if (phaseOver) startNextBossPhase();
                         break;
                 }
-            }
-
-            function updateParticles() {
-                particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.alpha -= 0.02; if (p.alpha <= 0) particles.splice(i, 1); });
-            }
-
-            function updatePhotos() {
-                // This logic is now handled by the familiar system
             }
 
             function updateStage() {
@@ -1020,8 +1058,6 @@
                     const event = stage.timeline[stage.nextEventIndex];
                     if (gameTime >= event.time) {
                         if (event.type === 'boss') {
-                            enemies = [];
-                            enemyBullets = [];
                             spawnBoss(event.name);
                         }
                         else { spawnEnemies(event); }
@@ -1040,7 +1076,7 @@
                         if (Math.hypot(b.x - e.x, b.y - e.y) < e.width / 2 + b.radius) { e.hp -= b.damage || 10; hit = true; break; }
                     }
                     if (hit) { bullets.splice(bi, 1); try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(err) {} createExplosion(b.x, b.y, '#ffffff', 5); continue; }
-                    if (boss.active && boss.canAttack && !boss.isIntro && !boss.invincible && boss.visible && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2 + b.radius) {
+                    if (boss.active && boss.state === 'ATTACKING' && !boss.invincible && boss.visible && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2 + b.radius) {
                         boss.hp -= b.damage || 10; bullets.splice(bi, 1); try { if(sfx) sfx.enemyHit.triggerAttackRelease('C3', '8n'); } catch(e) {} createExplosion(b.x, b.y, '#ffffff', 5);
                     }
                 }
@@ -1057,16 +1093,20 @@
                     const dx = player.x - l.x; const dy = player.y - l.y; const dotProduct = dx * Math.cos(l.angle) + dy * Math.sin(l.angle);
                     if (dotProduct > 0 && playerDist < l.width / 2 + player.hitboxRadius) { playerHit(); }
                 });
-                boss.trails.forEach(t => {
-                     if (t.alpha > 0.5 && Math.hypot(player.x - t.x, player.y - t.y) < t.radius + player.hitboxRadius) { playerHit(); }
-                });
-                 boss.familiars.forEach(f => {
-                    if (f.type === 'photo' && f.state === 'active' && !player.invincible) {
-                        if (player.x > f.x && player.x < f.x + f.width && player.y > f.y && player.y < f.y + f.height) {
-                            playerHit();
+                if(boss.trails){
+                    boss.trails.forEach(t => {
+                        if (t.alpha > 0.5 && Math.hypot(player.x - t.x, player.y - t.y) < t.radius + player.hitboxRadius) { playerHit(); }
+                    });
+                }
+                 if(boss.familiars) {
+                    boss.familiars.forEach(f => {
+                        if (f.type === 'photo' && f.state === 'active' && !player.invincible) {
+                            if (player.x > f.x && player.x < f.x + f.width && player.y > f.y && player.y < f.y + f.height) {
+                                playerHit();
+                            }
                         }
-                    }
-                });
+                    });
+                 }
                 if (boss.active && !player.invincible && Math.hypot(player.x - boss.x, player.y - boss.y) < boss.width / 2 + player.hitboxRadius) { playerHit(); }
             }
 
@@ -1093,7 +1133,7 @@
                                 else if (this.moveType === 'right') { this.x = canvas.width - 50 - Math.sin(this.moveTimer / 50) * 30; this.y += 2.5; }
                                 else if (this.moveType === 'v-shape') { const side = i % 2 === 0 ? 1 : -1; this.x = canvas.width / 2 + side * this.moveTimer * 2.5; this.y = 100 + this.moveTimer * 2.5; }
                                 else { this.x = (canvas.width / (event.count + 1)) * (i + 1); this.y = -30 - i * 20; this.y += 2.5; }
-                                this.shootTimer++; if (this.shootTimer > this.shootCooldown) { this.shootTimer = 0; const angle = Math.atan2(player.y - this.y, player.x - this.x); createEnemyBullet(this.x, this.y, 4, angle, null, 5, 'amulet'); }
+                                this.shootTimer++; if (this.shootTimer > this.shootCooldown) { this.shootTimer = 0; const angle = Math.atan2(player.y - this.y, player.x - this.x); createEnemyBullet(this.x, this.y, 4, angle, '#00c800', 5, 'circle'); }
                             }
                         };
                     } else if (event.type === 'sunflower') {
@@ -1103,7 +1143,7 @@
                                 this.angle += 0.03; this.shootTimer++;
                                 if (this.shootTimer > this.shootCooldown) {
                                     this.shootTimer = 0;
-                                    for (let j = 0; j < 12; j++) { const angle = (Math.PI * 2 / 12) * j + this.moveTimer / 20; createEnemyBullet(this.x, this.y, 3, '#ffff00', 6, 'star'); }
+                                    for (let j = 0; j < 12; j++) { const angle = (Math.PI * 2 / 12) * j + this.moveTimer / 20; createEnemyBullet(this.x, this.y, 3, angle, 'yellow', 6, 'circle'); }
                                 }
                                 this.moveTimer++;
                             }
@@ -1116,6 +1156,7 @@
             function spawnBoss(name) {
                 enemies = [];
                 enemyBullets = [];
+                boss.familiars = [];
                 currentBossName = name;
                 boss.active = true;
                 boss.visible = true;
@@ -1126,10 +1167,10 @@
                 playMusic(name);
                 if (name === 'reimu') {
                     boss.img = document.getElementById('reimu-img');
-                    boss.phases = [ { type: 'spell', hp: 15000, card: { name: '夢符「二重結界」', duration: 3000, func: duplexBarrier } }, { type: 'spell', hp: 15000, card: { name: 'お札「新聞拡張団調伏」', duration: 3000, func: newspaperSubjugation } }, { type: 'spell', hp: 15000, card: { name: '結界「パパラッチ撃退結界」', duration: 3000, func: paparazziBoundary } }, { type: 'spell', hp: 15000, card: { name: '夢符「封魔陣」', duration: 3000, func: evilSealingCircle } }, { type: 'spell', hp: 15000, card: { name: '霊符「夢想封印 集」', duration: 3000, func: fantasySealClump } }, { type: 'spell', hp: 15000, card: { name: '神域「神霊大結界」', duration: 3000, func: greatDivineBarrier } }, { type: 'spell', hp: 15000, card: { name: '霊符「夢想妙珠」', duration: 3000, func: fantasySeal } }, ];
+                    boss.phases = [ { type: 'spell', hp: 20000, card: { name: '夢符「二重結界」', duration: 3000, func: duplexBarrier } }, { type: 'spell', hp: 20000, card: { name: 'お札「新聞拡張団調伏」', duration: 3000, func: newspaperSubjugation } }, { type: 'spell', hp: 20000, card: { name: '結界「パパラッチ撃退結界」', duration: 3000, func: paparazziBoundary } }, { type: 'spell', hp: 20000, card: { name: '夢符「封魔陣」', duration: 3000, func: evilSealingCircle } }, { type: 'spell', hp: 20000, card: { name: '霊符「夢想封印 集」', duration: 3000, func: fantasySealClump } }, { type: 'spell', hp: 20000, card: { name: '神域「神霊大結界」', duration: 3000, func: greatDivineBarrier } }, { type: 'spell', hp: 20000, card: { name: '霊符「夢想妙珠」', duration: 3000, func: fantasySeal } }, ];
                 } else if (name === 'marisa') {
                     boss.img = document.getElementById('marisa-img');
-                    boss.phases = [ { type: 'spell', hp: 15000, card: { name: '魔符「ミルキーウェイ」', duration: 3000, func: milkyWay } }, { type: 'spell', hp: 15000, card: { name: '魔符「スターダストレヴァリエ」', duration: 3000, func: stardustReverie } }, { type: 'spell', hp: 15000, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 3000, func: nonDirectionalLaser } }, { type: 'spell', hp: 15000, card: { name: '恋符「マスタースパーク」', duration: 3000, func: masterSpark } }, { type: 'spell', hp: 15000, card: { name: '魔砲「ファイナルスパーク」', duration: 3000, func: finalSpark } }, { type: 'spell', hp: 15000, card: { name: '星符「メテオニックシャワー」', duration: 3000, func: meteonicShower } }, { type: 'spell', hp: 15000, card: { name: '彗星「ブレイジングスター」', duration: 3000, func: blazingStar } }, ];
+                    boss.phases = [ { type: 'spell', hp: 20000, card: { name: '魔符「ミルキーウェイ」', duration: 3000, func: milkyWay } }, { type: 'spell', hp: 20000, card: { name: '魔符「スターダストレヴァリエ」', duration: 3000, func: stardustReverie } }, { type: 'spell', hp: 20000, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 3000, func: nonDirectionalLaser } }, { type: 'spell', hp: 20000, card: { name: '恋符「マスタースパーク」', duration: 3000, func: masterSpark } }, { type: 'spell', hp: 20000, card: { name: '魔砲「ファイナルスパーク」', duration: 3000, func: finalSpark } }, { type: 'spell', hp: 20000, card: { name: '星符「メテオニックシャワー」', duration: 3000, func: meteonicShower } }, { type: 'spell', hp: 20000, card: { name: '彗星「ブレイジングスター」', duration: 3000, func: blazingStar } }, ];
                 }
             }
 
@@ -1163,11 +1204,10 @@
                 boss.hp = currentPhase.hp; boss.maxHp = currentPhase.hp; boss.phaseTimer = 0;
                 boss.invincible = true; boss.visible = true;
                 boss.state = 'INTRO';
-                boss.familiars.forEach(f => { if(f.cleanup) f.cleanup() });
-                boss.familiars = []; boss.photos = []; boss.trails = [];
+                boss.familiars = [];
                 enemies = []; enemyBullets = []; lasers = [];
                 boss.canAttack = false;
-                setTimeout(() => { boss.invincible = false; boss.canAttack = true; }, 1300);
+
                 if (currentPhase.type === 'spell') {
                     spellCardNameEl.textContent = currentPhase.card.name;
                     spellCardCutinNameEl.textContent = currentPhase.card.name;
@@ -1176,9 +1216,13 @@
                     setTimeout(() => {
                         bossCutinEl.classList.remove('animate');
                         boss.state = 'ATTACKING';
+                        boss.canAttack = true;
+                        boss.invincible = false;
                     }, 2500);
                 } else {
                     boss.state = 'ATTACKING';
+                    boss.canAttack = true;
+                    boss.invincible = false;
                 }
                 boss.targetX = Math.random() * (canvas.width - 200) + 100;
                 boss.targetY = Math.random() * 100 + 100;
@@ -1187,7 +1231,7 @@
             function bossDefeated() {
                 boss.visible = false; createExplosion(boss.x, boss.y, '#00ffff', 200, 5000);
                 score += 100000; boss.active = false;
-                enemies = []; enemyBullets = []; lasers = []; boss.photos = []; boss.familiars = []; boss.trails = [];
+                enemies = []; enemyBullets = []; lasers = []; boss.familiars = [];
                 showOverlayMessage("STAGE CLEAR!!", 180);
                 setTimeout(() => { handleVictoryDialogue(currentBossName); }, 3000);
             }
@@ -1305,8 +1349,8 @@
             }
             function newspaperSubjugation() {
                 if (boss.phaseTimer % 120 === 1) {
-                    const photo = {
-                        x: player.x - 100, y: player.y - 125, width: 200, height: 250, life: 150, spawnTime: 90, state: 'warning',
+                    const familiar = {
+                        x: player.x - 100, y: player.y - 125, width: 200, height: 250, life: 150, spawnTime: 90, state: 'warning', type: 'photo',
                         update: function() {
                             if (this.state === 'warning' && this.life <= this.spawnTime) {
                                 this.state = 'active';
@@ -1325,16 +1369,12 @@
                                 ctx.fillRect(this.x, this.y, this.width, this.height); ctx.strokeRect(this.x, this.y, this.width, this.height);
                             } else {
                                 ctx.globalAlpha = this.life < 30 ? this.life / 30 : 1;
-                                ctx.fillStyle = '#dc143c'; ctx.strokeStyle = 'white';
-                                ctx.fillRect(this.x, this.y, this.width, this.height); ctx.strokeRect(this.x, this.y, this.width, this.height);
-                                ctx.fillStyle = 'white'; ctx.font = 'bold 24px DotGothic16'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                                ctx.fillText('新聞勧誘', this.x + this.width / 2, this.y + this.height / 2 - 15);
-                                ctx.fillText('お断り！', this.x + this.width / 2, this.y + this.height / 2 + 15);
+                                ctx.drawImage(reimuShinbunImg, this.x, this.y, this.width, this.height);
                             }
                             ctx.restore();
                         }
                     };
-                    boss.familiars.push(photo);
+                    boss.familiars.push(familiar);
                 }
             }
             function paparazziBoundary() {
@@ -1380,7 +1420,7 @@
                 }
             }
             function stardustReverie() {
-                if (boss.phaseTimer % 2 === 0) {
+                if (gameTime % 4 < 3) {
                     const x = Math.random() * canvas.width; const y = Math.random() * canvas.height;
                     const bullet = createEnemyBullet(x, y, 0, 0, rainbowColor(), 12, 'star');
                     bullet.alpha = 0; bullet.life = 125;
@@ -1393,36 +1433,37 @@
                 }
             }
             function nonDirectionalLaser() {
+                const starSizes = [6, 10, 14];
                 if (boss.phaseTimer % 120 === 0) { const angle = Math.random() * Math.PI * 2; for (let i = 0; i < 7; i++) { try { if (sfx) sfx.laser.triggerAttackRelease('A3', '1s'); } catch(e) {} createLaser(boss.x, boss.y, 12, angle + (i * Math.PI * 2 / 7), 100, 'rgb(255,255,100)'); } }
-                if (boss.phaseTimer % 30 === 0) { const ways = 32; const baseAngle = boss.phaseTimer * 0.03; for (let i = 0; i < ways; i++) { const angle = baseAngle + (i * Math.PI * 2 / ways); createEnemyBullet(boss.x, boss.y, 3, angle, rainbowColor(), 12, 'star'); } }
-                if (boss.phaseTimer % 30 === 15) { const ways = 32; const baseAngle = -boss.phaseTimer * 0.03; for (let i = 0; i < ways; i++) { const angle = baseAngle + (i * Math.PI * 2 / ways); createEnemyBullet(boss.x, boss.y, 2.5, angle, rainbowColor(), 10, 'star'); } }
+                if (boss.phaseTimer % 30 === 0) { const ways = 32; const baseAngle = boss.phaseTimer * 0.03; for (let i = 0; i < ways; i++) { const angle = baseAngle + (i * Math.PI * 2 / ways); createEnemyBullet(boss.x, boss.y, 3, angle, rainbowColor(), starSizes[i % 3], 'star'); } }
+                if (boss.phaseTimer % 30 === 15) { const ways = 32; const baseAngle = -boss.phaseTimer * 0.03; for (let i = 0; i < ways; i++) { const angle = baseAngle + (i * Math.PI * 2 / ways); createEnemyBullet(boss.x, boss.y, 2.5, angle, rainbowColor(), starSizes[i % 3], 'star'); } }
                 if (boss.phaseTimer % 2 === 0) { const angle = Math.random() * Math.PI * 2; const speed = 1 + Math.random() * 2; createEnemyBullet(boss.x, boss.y, speed, angle, '#ffff00', 5, 'star'); }
             }
             function masterSpark() {
-                const cycle = 225;
+                const cycle = 216;
                 const phaseTimeInCycle = boss.phaseTimer % cycle;
                 if (phaseTimeInCycle === 1) {
                     boss.sparkState = 'aiming'; boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
                     boss.sparkWarningLaser = createLaser(boss.x, boss.y, 4, boss.sparkAngle, 95, 'rgba(255,100,255,0.5)', true);
-                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle < 35) {
+                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle < 21) {
                     if (boss.sparkWarningLaser) { boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x); boss.sparkWarningLaser.angle = boss.sparkAngle; }
-                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle >= 35) {
+                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle >= 21) {
                     boss.sparkState = 'locking';
                 } else if (boss.sparkState === 'locking' && phaseTimeInCycle >= 95) {
                     boss.sparkState = 'firing'; if (boss.sparkWarningLaser) { boss.sparkWarningLaser.timer = 1; }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A2', '1.5s'); } catch(e) {}
-                    createLaser(boss.x, boss.y, 500, boss.sparkAngle, 63, 'rgb(255,255,255)');
-                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 158) {
+                    createLaser(boss.x, boss.y, 500, boss.sparkAngle, 80, 'rgb(255,255,255)');
+                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 175) {
                     boss.sparkState = 'idle';
                 }
-                if (boss.phaseTimer > 95 && gameTime % 4 === 0) { for (let i = 0; i < 3; i++) {const angle = (boss.phaseTimer * 0.05) + i * (Math.PI*2/3); createEnemyBullet(boss.x, boss.y, 3, angle, rainbowColor(), Math.random() * 6 + 6, 'star');} }
+                if (boss.phaseTimer > 95 && gameTime % 2 === 0) { for (let i = 0; i < 4; i++) {const angle = (boss.phaseTimer * 0.05) + i * (Math.PI/2); createEnemyBullet(boss.x, boss.y, 3, angle, rainbowColor(), 18, 'star');} }
             }
             function finalSpark() {
-                if (boss.phaseTimer < 150) return;
                 const cycle = 221;
-                const phaseTimeInCycle = (boss.phaseTimer - 150) % cycle;
+                const phaseTimeInCycle = boss.phaseTimer % cycle;
                 if (phaseTimeInCycle === 1) {
-                    boss.sparkState = 'aiming'; boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                    boss.sparkState = 'aiming';
+                    boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
                     boss.sparkWarningLaser = createLaser(boss.x, boss.y, 6, boss.sparkAngle, 91, 'rgba(255,100,255,0.3)', true);
                 } else if (boss.sparkState === 'aiming' && phaseTimeInCycle < 28) {
                     if (boss.sparkWarningLaser) {
@@ -1432,13 +1473,18 @@
                     }
                 } else if (boss.sparkState === 'aiming' && phaseTimeInCycle >= 28) {
                       boss.sparkState = 'locking';
+                      const playerAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                      let angleDiff = playerAngle - boss.sparkAngle;
+                      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2; while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                      boss.sparkSweepDirection = Math.sign(angleDiff) || 1;
                 } else if (boss.sparkState === 'locking' && phaseTimeInCycle >= 91) {
                     boss.sparkState = 'firing'; if (boss.sparkWarningLaser) { boss.sparkWarningLaser.timer = 1; }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A1', '2.5s'); } catch(e) {}
-                    const mainLaser = createLaser(boss.x, boss.y, 250, boss.sparkAngle, 130, 'rgb(255,100,255)');
+                    const mainLaser = createLaser(boss.x, boss.y, 250, boss.sparkAngle, 90, 'rgb(255,100,255)');
                     mainLaser.baseAngle = boss.sparkAngle; mainLaser.startTime = gameTime;
+                    mainLaser.sweepDirection = boss.sparkSweepDirection;
                     mainLaser.update = function() {
-                        this.angle = this.baseAngle + Math.sin((gameTime - this.startTime) * 0.08) * 0.56;
+                        this.angle = this.baseAngle + (this.sweepDirection * (Math.PI * 2) * ((gameTime - this.startTime) / 90) );
                         if (gameTime % 5 === 0) {
                             for(let j=0; j<2; j++){
                                 for (let i = -1; i <= 1; i += 2) {
@@ -1449,7 +1495,7 @@
                             }
                         }
                     }
-                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 221) {
+                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 182) {
                     boss.sparkState = 'idle';
                 }
             }
@@ -1464,27 +1510,42 @@
             }
 
             function blazingStar() {
-                if (!boss.isIntro && boss.phaseTimer === 1) {
-                    boss.isDashing = true;
-                    boss.dashTimer = 60;
-                    const startAngle = Math.random() * Math.PI * 2;
-                    boss.x = canvas.width / 2 + Math.cos(startAngle) * 450;
-                    boss.y = canvas.height / 2 + Math.sin(startAngle) * 450;
-                    const targetAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    boss.dx = Math.cos(targetAngle) * 8.4;
-                    boss.dy = Math.sin(targetAngle) * 8.4;
+                if (boss.phaseTimer === 1) {
+                    boss.dashState = 'pre-dashing';
+                    boss.dashTargetX = (Math.random() < 0.5 ? -50 : canvas.width + 50);
+                    boss.dashTargetY = Math.random() * canvas.height;
                 }
-                if (boss.isDashing) {
+
+                if (boss.dashState === 'pre-dashing') {
+                    const dx = boss.dashTargetX - boss.x;
+                    const dy = boss.dashTargetY - boss.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < 25) {
+                        boss.x = boss.dashTargetX; boss.y = boss.dashTargetY;
+                        boss.dashState = 'dashing';
+                        boss.dashTimer = 85;
+                        const targetAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                        boss.dx = Math.cos(targetAngle) * 8.4;
+                        boss.dy = Math.sin(targetAngle) * 8.4;
+                    } else {
+                        boss.x += dx / dist * 30;
+                        boss.y += dy / dist * 30;
+                    }
+                }
+
+                if (boss.dashState === 'dashing') {
                     boss.x += boss.dx;
                     boss.y += boss.dy;
                     boss.dashTimer--;
-                    const trailSegment = {
-                        x: boss.x, y: boss.y, life: 60, alpha: 0, radius: 100,
-                        angle: Math.atan2(boss.dy, boss.dx)
-                    };
-                    boss.trails.push(trailSegment);
-                    if (boss.dashTimer <= 0) {
-                        boss.isDashing = false;
+                    if (boss.dashTimer <= 0 || boss.x < -100 || boss.x > canvas.width + 100 || boss.y < -100 || boss.y > canvas.height + 100) {
+                        boss.dashState = 'waiting';
+                        boss.dashWaitTimer = 60;
+                    }
+                } else if (boss.dashState === 'waiting') {
+                    boss.dashWaitTimer--;
+                    if(boss.dashWaitTimer <= 0) {
+                        boss.dashState = 'idle';
+                        boss.phaseTimer = 0;
                     }
                 }
             }
@@ -1568,13 +1629,14 @@
                     if (!gameStarted) return;
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    updateStage(); updatePlayer(); updateBullets(); updatePowerUps(); updateBombItems();
+                    updateStage(); updatePlayer(); updateBullets(); updatePowerUps(); updateBombItems(); updatePlayerBombs();
                     updateEnemyBullets(); updateLasers(); updateEnemies(); updateBoss(); updateFamiliars(); updateTrails();
-                    updateParticles(); updatePhotos(); checkCollisions();
+                    updateParticles(); checkCollisions();
 
-                    drawTrails(); drawEnemies(); drawBoss(); drawFamiliars(); drawPhotos(); drawPlayer();
+                    drawTrails(); drawEnemies(); drawBoss(); drawFamiliars();
+                    drawPlayer();
                     drawBullets(); drawPowerUps(); drawBombItems(); drawLasers(); drawEnemyBullets();
-                    drawParticles(); drawPlayerBomb(); updateUI();
+                    drawParticles(); drawPlayerBombs(); updateUI();
 
                     gameTime++;
                     requestAnimationFrame(gameLoop);
