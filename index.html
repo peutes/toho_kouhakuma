@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>東方AI紅白魔 ~ Dual Boss Shooter ~</title>
 
-    <meta name="description" content="AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。PCでもスマホでも遊べます。">
-    <meta name="keywords" content="東方, 東方Project, 弾幕, シューティング, STG, ゲーム, 無料, AI, Gemini, 博麗霊夢, 霧雨魔理沙, にとり">
+    <meta name="description" content="AIが生成した東方Projectの二次創作(同人)弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。PCでもスマホでも遊べます。">
+    <meta name="keywords" content="東方, 東方Project, 弾幕, シューティング, STG, ゲーム, 無料, 同人ゲーム, 二次創作, AI, Gemini, 博麗霊夢, 霧雨魔理沙, にとり">
     <meta name="author" content="Gemini">
 
     <meta property="og:type" content="website">
     <meta property="og:title" content="東方AI紅白魔 ~ Dual Boss Shooter ~">
-    <meta property="og:description" content="AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。">
+    <meta property="og:description" content="AIが生成した東方Projectの二次創作(同人)弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。">
     <meta property="og:image" content="https://peutes.github.io/toho_kouhakuma/img/title.png">
     <meta property="og:url" content="https://peutes.github.io/toho_kouhakuma/">
 
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://peutes.github.io/toho_kouhakuma/">
     <meta property="twitter:title" content="東方AI紅白魔 ~ Dual Boss Shooter ~">
-    <meta property="twitter:description" content="AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。">
+    <meta property="twitter:description" content="AIが生成した東方Projectの二次創作(同人)弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。">
     <meta property="twitter:image" content="https://peutes.github.io/toho_kouhakuma/img/title.png">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -28,8 +28,8 @@
       "@context": "https://schema.org",
       "@type": "VideoGame",
       "name": "東方AI紅白魔 ~ Dual Boss Shooter ~",
-      "description": "AIが生成した東方Project風の弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。",
-      "genre": ["Shooter", "Bullet Hell", "Danmaku"],
+      "description": "AIが生成した東方Projectの二次創作(同人)弾幕シューティングゲーム。自機は河城にとり！立ちはだかる博麗霊夢と霧雨魔理沙を撃破しよう。",
+      "genre": ["Shooter", "Bullet Hell", "Danmaku", "Touhou Project", "Fan Game"],
       "playMode": "SinglePlayer",
       "applicationCategory": "Game",
       "operatingSystem": "Windows, MacOS, Linux, iOS, Android, Web browser",
@@ -538,8 +538,6 @@
                 } catch (e) { /* do nothing */ }
             }
 
-            // ★★★★★ 修正点 ★★★★★
-            // グレイズ判定を緩和
             const player = {
                 x: canvas.width / 2, y: canvas.height - 100, width: 48, height: 48, speed: 6, lives: 100, power: 0, bombs: 3, graze: 0,
                 hitboxRadius: 2, grazeRadius: 45, shootCooldown: 0, invincible: false, invincibleTimer: 0, bombing: false,
@@ -558,9 +556,12 @@
 
             const stage = {
                 timeline: [
-                    { time: 120, type: 'fairy', side: 'left', count: 13 }, { time: 240, type: 'fairy', side: 'right', count: 13 },
-                    { time: 360, type: 'sunflower', side: 'center', count: 4 }, { time: 540, type: 'fairy', side: 'v-shape', count: 21 },
-                    { time: 720, type: 'sunflower', side: 'left', count: 4 }, { time: 720, type: 'sunflower', side: 'right', count: 4 },
+                    { time: 120, type: 'cross_fairy_left', count: 8 },
+                    { time: 180, type: 'cross_fairy_right', count: 8 },
+                    { time: 360, type: 'big_fairy', side: 'center', count: 1 },
+                    { time: 540, type: 'sunflower_wall', side: 'left', count: 5 },
+                    { time: 600, type: 'sunflower_wall', side: 'right', count: 5 },
+                    { time: 720, type: 'final_rush_fairy', side: 'v-shape', count: 15 },
                     { time: 900, type: 'boss', name: 'reimu' }
                 ],
                 nextEventIndex: 0, bossQueue: ['marisa']
@@ -676,8 +677,6 @@
                         ctx.font = 'bold 9px DotGothic16';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
-                        // ★★★★★ 修正点 ★★★★★
-                        // お札の文字を180度回転
                         ctx.rotate(Math.PI / 2 + Math.PI);
                         ctx.fillText('博麗', 0, 0);
                         ctx.restore();
@@ -721,12 +720,10 @@
             function drawBoss() {
                 if (!boss.active || !boss.visible || !boss.img) return;
 
-                // ★★★★★ 修正点 ★★★★★
-                // ブレイジングスター使用時のオーラを描画
                 if (boss.isBlazing) {
                     ctx.save();
-                    ctx.fillStyle = 'rgba(148, 0, 211, 0.4)'; // Purple with alpha
-                    ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)'; // Magenta stroke
+                    ctx.fillStyle = 'rgba(148, 0, 211, 0.4)';
+                    ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)';
                     ctx.lineWidth = 3;
                     ctx.shadowColor = '#ff00ff';
                     ctx.shadowBlur = 20;
@@ -810,12 +807,23 @@
                 if (!boss.trails || boss.trails.length === 0) return;
                 boss.trails.forEach(t => {
                     ctx.save();
-                    ctx.fillStyle = `rgba(255, 180, 255, ${t.alpha * 0.7})`;
+
+                    // 外側のグロー
+                    ctx.fillStyle = `rgba(255, 0, 255, ${t.alpha * 0.3})`;
                     ctx.shadowColor = '#ff00ff';
-                    ctx.shadowBlur = 15;
+                    ctx.shadowBlur = 20;
                     ctx.beginPath();
                     ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
                     ctx.fill();
+
+                    // 中心のコア
+                    ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha * 0.9})`;
+                    ctx.shadowColor = '#ffffff';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, t.radius * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+
                     ctx.restore();
                 });
             }
@@ -1025,7 +1033,9 @@
                         if (e.hp <= 0) {
                             try { if(sfx) sfx.enemyHit.triggerAttackRelease('C2', '8n'); } catch(err) {}
                             score += e.score;
-                            if (Math.random() < 0.1) spawnPowerUp(e.x, e.y);
+                            // ★★★★★ 修正点 ★★★★★
+                            // Pアイテムの出現率を 10% -> 15% に変更
+                            if (Math.random() < 0.15) spawnPowerUp(e.x, e.y);
                             if (Math.random() < 0.05) spawnBombItem(e.x, e.y);
                             createExplosion(e.x, e.y, '#fff', 20);
                             enemies.splice(i, 1);
@@ -1062,7 +1072,7 @@
                         }
 
                         if (t.life === 58) {
-                            for(let j=0; j < 2; j++) {
+                            for(let j=0; j < 1; j++) {
                                const angle = t.angle + (Math.random() - 0.5) * Math.PI;
                                createEnemyBullet(t.x, t.y, 2 + Math.random(), angle, rainbowColor(), 9, 'star');
                             }
@@ -1112,7 +1122,7 @@
                         boss.phaseTimer++;
                         let phaseOver = false;
                         if (currentPhase.type === 'spell') {
-                            if (boss.hp <= 0 || boss.phaseTimer > currentPhase.card.duration) {
+                            if (boss.hp <= 0) {
                                 if (boss.hp <= 0) {
                                     score += 50000;
                                     for(let i = 0; i < 2; i++) spawnPowerUp(boss.x + (Math.random() - 0.5) * 100, boss.y + (Math.random() - 0.5) * 100);
@@ -1182,8 +1192,6 @@
                          }
                      });
                  }
-                // ★★★★★ 修正点 ★★★★★
-                // ブレイジングスターのオーラの当たり判定を追加
                 if (boss.isBlazing && Math.hypot(player.x - boss.x, player.y - boss.y) < boss.auraRadius + player.hitboxRadius) {
                     playerHit();
                 }
@@ -1205,29 +1213,82 @@
             function spawnEnemies(event) {
                 for (let i = 0; i < event.count; i++) {
                     let enemy;
-                    if (event.type === 'fairy') {
-                        enemy = { hp: 15, score: 200, shootCooldown: 45 + Math.random() * 30, shootTimer: 0, x: 0, y: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveType: event.side, moveTimer: i * 25,
-                            update() {
-                                this.moveTimer++;
-                                if (this.moveType === 'left') { this.x = 50 + Math.sin(this.moveTimer / 50) * 30; this.y += 2.5; }
-                                else if (this.moveType === 'right') { this.x = canvas.width - 50 - Math.sin(this.moveTimer / 50) * 30; this.y += 2.5; }
-                                else if (this.moveType === 'v-shape') { const side = i % 2 === 0 ? 1 : -1; this.x = canvas.width / 2 + side * this.moveTimer * 2.5; this.y = 100 + this.moveTimer * 2.5; }
-                                else { this.x = (canvas.width / (event.count + 1)) * (i + 1); this.y = -30 - i * 20; this.y += 2.5; }
-                                this.shootTimer++; if (this.shootTimer > this.shootCooldown) { this.shootTimer = 0; const angle = Math.atan2(player.y - this.y, player.x - this.x); createEnemyBullet(this.x, this.y, 4, angle, '#00c800', 5, 'circle'); }
-                            }
-                        };
-                    } else if (event.type === 'sunflower') {
-                        enemy = { hp: 100, score: 500, shootCooldown: 45 + Math.random() * 30, shootTimer: 0, x: event.side === 'left' ? 150 : (event.side === 'right' ? 450 : 300), y: -30 - i * 60, width: 50, height: 50, img: youseiKiiroImg, angle: 0, moveTimer: 0,
-                            update() {
-                                if (this.y < 150 + i * 20) this.y += 2;
-                                this.angle += 0.03; this.shootTimer++;
-                                if (this.shootTimer > this.shootCooldown) {
-                                    this.shootTimer = 0;
-                                    for (let j = 0; j < 12; j++) { const angle = (Math.PI * 2 / 12) * j + this.moveTimer / 20; createEnemyBullet(this.x, this.y, 3, angle, 'yellow', 6, 'circle'); }
+                    switch(event.type) {
+                        case 'cross_fairy_left':
+                        case 'cross_fairy_right':
+                            enemy = { hp: 20, score: 250, shootCooldown: 60, shootTimer: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveTimer: i * 15,
+                                isLeft: event.type === 'cross_fairy_left',
+                                update() {
+                                    this.moveTimer++;
+                                    this.x = this.isLeft ? (this.moveTimer * 2) : (canvas.width - this.moveTimer * 2);
+                                    this.y = 50 + this.moveTimer * 1.5;
+                                    this.shootTimer++;
+                                    if (this.shootTimer > this.shootCooldown) {
+                                        this.shootTimer = 0;
+                                        const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+                                        for(let j = -1; j <= 1; j++) {
+                                            createEnemyBullet(this.x, this.y, 3.5, angleToPlayer + j * 0.2, '#00c800', 5, 'circle');
+                                        }
+                                    }
                                 }
-                                this.moveTimer++;
-                            }
-                        };
+                            };
+                            break;
+                        case 'big_fairy':
+                             enemy = { hp: 500, score: 2000, shootCooldown: 4, shootTimer: 0, x: canvas.width/2, y: -50, width: 80, height: 80, img: youseiKiiroImg, angle: 0, moveTimer: 0,
+                                state: 'entering',
+                                update() {
+                                    if(this.state === 'entering') {
+                                        this.y += 2;
+                                        if(this.y >= 150) this.state = 'firing';
+                                    } else if (this.state === 'firing') {
+                                        this.shootTimer++;
+                                        this.moveTimer++;
+                                        if(this.shootTimer > this.shootCooldown) {
+                                            this.shootTimer = 0;
+                                            const baseAngle = this.moveTimer * 0.05;
+                                            for(let j=0; j<2; j++) {
+                                                 createEnemyBullet(this.x, this.y, 4, baseAngle + j * Math.PI, 'yellow', 8, 'circle');
+                                            }
+                                        }
+                                        if(this.moveTimer > 240) {
+                                            this.state = 'leaving';
+                                        }
+                                    } else if (this.state === 'leaving') {
+                                        this.y -= 3;
+                                    }
+                                }
+                            };
+                            break;
+                        case 'sunflower_wall':
+                            enemy = { hp: 100, score: 500, shootCooldown: 50, shootTimer: i * 10, x: (canvas.width / (event.count + 1)) * (i + 1), y: -30, width: 50, height: 50, img: youseiKiiroImg, angle: 0, moveTimer: 0,
+                                update() {
+                                    if (this.y < 100) this.y += 1;
+                                    this.angle += 0.03; this.shootTimer++;
+                                    if (this.shootTimer > this.shootCooldown) {
+                                        this.shootTimer = 0;
+                                        for (let j = 0; j < 8; j++) { createEnemyBullet(this.x, this.y, 3, (Math.PI * 2 / 8) * j + this.angle, 'orange', 6, 'circle'); }
+                                    }
+                                }
+                            };
+                            break;
+                        case 'final_rush_fairy':
+                             enemy = { hp: 15, score: 200, shootCooldown: 50, shootTimer: 0, x: 0, y: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveTimer: i * 10,
+                                update() {
+                                    this.moveTimer++;
+                                    const side = i % 2 === 0 ? 1 : -1;
+                                    this.x = canvas.width / 2 + side * this.moveTimer * 3;
+                                    this.y = 50 + this.moveTimer * 2;
+                                    this.shootTimer++;
+                                    if (this.shootTimer > this.shootCooldown) {
+                                        this.shootTimer = 0;
+                                        const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
+                                        for(let j = -1; j <= 1; j++) {
+                                            createEnemyBullet(this.x, this.y, 4, angleToPlayer + j * 0.25, 'pink', 5, 'circle');
+                                        }
+                                    }
+                                }
+                            };
+                            break;
                     }
                     if (enemy) enemies.push(enemy);
                 }
@@ -1248,10 +1309,10 @@
                 playMusic(name);
                 if (name === 'reimu') {
                     boss.img = document.getElementById('reimu-img');
-                    boss.phases = [ { type: 'spell', hp: 20000, card: { name: '夢符「二重結界」', duration: 3000, func: duplexBarrier } }, { type: 'spell', hp: 20000, card: { name: 'お札「新聞拡張団調伏」', duration: 3000, func: newspaperSubjugation } }, { type: 'spell', hp: 20000, card: { name: '結界「パパラッチ撃退結界」', duration: 3000, func: paparazziBoundary } }, { type: 'spell', hp: 20000, card: { name: '夢符「封魔陣」', duration: 3000, func: evilSealingCircle } }, { type: 'spell', hp: 20000, card: { name: '霊符「夢想封印 集」', duration: 3000, func: fantasySealClump } }, { type: 'spell', hp: 20000, card: { name: '神域「神霊大結界」', duration: 3000, func: greatDivineBarrier } }, { type: 'spell', hp: 20000, card: { name: '霊符「夢想妙珠」', duration: 3000, func: fantasySeal } }, ];
+                    boss.phases = [ { type: 'spell', hp: 20000, card: { name: '夢符「二重結界」', func: duplexBarrier } }, { type: 'spell', hp: 20000, card: { name: 'お札「新聞拡張団調伏」', func: newspaperSubjugation } }, { type: 'spell', hp: 20000, card: { name: '結界「パパラッチ撃退結界」', func: paparazziBoundary } }, { type: 'spell', hp: 20000, card: { name: '夢符「封魔陣」', func: evilSealingCircle } }, { type: 'spell', hp: 20000, card: { name: '霊符「夢想封印 集」', func: fantasySealClump } }, { type: 'spell', hp: 20000, card: { name: '神域「神霊大結界」', func: greatDivineBarrier } }, { type: 'spell', hp: 20000, card: { name: '霊符「夢想妙珠」', func: fantasySeal } }, ];
                 } else if (name === 'marisa') {
                     boss.img = document.getElementById('marisa-img');
-                    boss.phases = [ { type: 'spell', hp: 20000, card: { name: '魔符「ミルキーウェイ」', duration: 3000, func: milkyWay } }, { type: 'spell', hp: 20000, card: { name: '魔符「スターダストレヴァリエ」', duration: 3000, func: stardustReverie } }, { type: 'spell', hp: 20000, card: { name: '恋符「ノンディレクショナルレーザー」', duration: 3000, func: nonDirectionalLaser } }, { type: 'spell', hp: 20000, card: { name: '恋符「マスタースパーク」', duration: 3000, func: masterSpark } }, { type: 'spell', hp: 20000, card: { name: '魔砲「ファイナルスパーク」', duration: 3000, func: finalSpark } }, { type: 'spell', hp: 20000, card: { name: '星符「メテオニックシャワー」', duration: 3000, func: meteonicShower } }, { type: 'spell', hp: 20000, card: { name: '彗星「ブレイジングスター」', duration: 3000, func: blazingStar } }, ];
+                    boss.phases = [ { type: 'spell', hp: 20000, card: { name: '魔符「ミルキーウェイ」', func: milkyWay } }, { type: 'spell', hp: 20000, card: { name: '魔符「スターダストレヴァリエ」', func: stardustReverie } }, { type: 'spell', hp: 20000, card: { name: '恋符「ノンディレクショナルレーザー」', func: nonDirectionalLaser } }, { type: 'spell', hp: 20000, card: { name: '恋符「マスタースパーク」', func: masterSpark } }, { type: 'spell', hp: 20000, card: { name: '魔砲「ファイナルスパーク」', func: finalSpark } }, { type: 'spell', hp: 20000, card: { name: '星符「メテオニックシャワー」', func: meteonicShower } }, { type: 'spell', hp: 20000, card: { name: '彗星「ブレイジングスター」', func: blazingStar } }, ];
                 }
             }
 
@@ -1279,7 +1340,7 @@
             }
 
             function startNextBossPhase() {
-                boss.isBlazing = false; // Reset blazing star aura
+                boss.isBlazing = false;
                 boss.currentPhaseIndex++;
                 if (boss.currentPhaseIndex >= boss.phases.length) { bossDefeated(); return; }
                 const currentPhase = boss.phases[boss.currentPhaseIndex];
@@ -1315,8 +1376,6 @@
                 boss.visible = false; createExplosion(boss.x, boss.y, '#00ffff', 200, 5000);
                 score += 100000; boss.active = false; boss.isBlazing = false;
 
-                // ★★★★★ 修正点 ★★★★★
-                // ボス撃破時のアイテムドロップ数を変更
                 for(let i = 0; i < 2; i++) spawnPowerUp(boss.x + (Math.random() - 0.5) * 200, boss.y + (Math.random() - 0.5) * 200);
                 for(let i = 0; i < 2; i++) spawnBombItem(boss.x + (Math.random() - 0.5) * 200, boss.y + (Math.random() - 0.5) * 200);
 
@@ -1406,13 +1465,16 @@
             }
             function greatDivineBarrier() {
                 if (boss.phaseTimer === 1) {
-                    for (let i = 0; i < 3; i++) {
+                    boss.targetX = canvas.width / 2;
+                    boss.targetY = 120;
+                    for (let i = 0; i < 4; i++) {
                         const orb = {
                             color1: (i % 2 === 0) ? '#dc143c' : '#333333',
                             color2: '#ffffff',
-                            angle: i * (Math.PI * 2 / 3), radius: 200, shootCooldown: 0, rotation: 0, x: 0, y: 0, life: 9999,
+                            angle: i * (Math.PI * 2 / 4), radius: 200, shootCooldown: 0, rotation: 0, x: 0, y: 0, life: 9999,
                             update: function() {
-                                this.angle += 0.012; this.rotation += 0.1; this.x = boss.x + Math.cos(this.angle) * this.radius; this.y = boss.y + Math.sin(this.angle) * this.radius;
+                                this.angle += 0.024;
+                                this.rotation += 0.1; this.x = boss.x + Math.cos(this.angle) * this.radius; this.y = boss.y + Math.sin(this.angle) * this.radius;
                                 this.shootCooldown--;
                                 if (this.shootCooldown <= 0) {
                                     this.shootCooldown = 15; const angleToPlayer = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1529,75 +1591,94 @@
                 if (boss.phaseTimer % 2 === 0) { const angle = Math.random() * Math.PI * 2; const speed = 1 + Math.random() * 2; createEnemyBullet(boss.x, boss.y, speed, angle, '#ffff00', 5, 'star'); }
             }
             // ★★★★★ 修正点 ★★★★★
-            // マスタースパークの星の大きさを統一・拡大
+            // 「マスタースパーク」の予告時間、星の密度と速度を調整
             function masterSpark() {
-                const cycle = 172;
+                const cycle = 232;
                 const phaseTimeInCycle = boss.phaseTimer % cycle;
                 if (phaseTimeInCycle === 1) {
                     boss.sparkState = 'aiming'; boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    boss.sparkWarningLaser = createLaser(boss.x, boss.y, 4, boss.sparkAngle, 95, 'rgba(255,100,255,0.5)', true);
-                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle < 21) {
+                    boss.sparkWarningLaser = createLaser(boss.x, boss.y, 4, boss.sparkAngle, 155, 'rgba(255,100,255,0.5)', true); // 95 -> 155
+                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle < 81) {
                     if (boss.sparkWarningLaser) { boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x); boss.sparkWarningLaser.angle = boss.sparkAngle; }
-                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle >= 21) {
+                } else if (boss.sparkState === 'aiming' && phaseTimeInCycle >= 81) {
                     boss.sparkState = 'locking';
-                } else if (boss.sparkState === 'locking' && phaseTimeInCycle >= 95) {
+                } else if (boss.sparkState === 'locking' && phaseTimeInCycle >= 155) {
                     boss.sparkState = 'firing'; if (boss.sparkWarningLaser) { boss.sparkWarningLaser.timer = 1; }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A2', '1.5s'); } catch(e) {}
                     createLaser(boss.x, boss.y, 500, boss.sparkAngle, 76, 'rgb(255,255,255)');
-                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 171) {
+                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 231) {
                     boss.sparkState = 'idle';
                 }
-                if (boss.phaseTimer > 95 && gameTime % 3 === 0) {
-                    for (let i = 0; i < 5; i++) {
-                        const angle = (boss.phaseTimer * 0.05) + i * (Math.PI*2/5);
-                        createEnemyBullet(boss.x, boss.y, 3, angle, rainbowColor(), 16, 'star');
+                if (boss.phaseTimer > 155 && gameTime % 5 === 0) {
+                    for (let i = 0; i < 3; i++) {
+                        const angle = (boss.phaseTimer * 0.05) + i * (Math.PI * 2 / 3);
+                        createEnemyBullet(boss.x, boss.y, 2, angle, rainbowColor(), 16, 'star');
                     }
                 }
             }
             // ★★★★★ 修正点 ★★★★★
-            // ファイナルスパークのレーザーを回転から左右往復に変更
+            // 「ファイナルスパーク」のレーザー挙動と弾幕を再設計
             function finalSpark() {
-                const cycle = 221;
+                const cycle = 240;
+                const fireStartTime = 90;
+                const laserDuration = 150;
                 const phaseTimeInCycle = boss.phaseTimer % cycle;
+
                 if (phaseTimeInCycle === 1) {
                     boss.sparkState = 'aiming';
                     boss.sparkAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                    boss.sparkWarningLaser = createLaser(boss.x, boss.y, 6, boss.sparkAngle, 91, 'rgba(255,100,255,0.3)', true);
+                    boss.sparkWarningLaser = createLaser(boss.x, boss.y, 6, boss.sparkAngle, fireStartTime - 1, 'rgba(255,100,255,0.3)', true);
                 } else if (boss.sparkState === 'aiming' && phaseTimeInCycle < 28) {
                     if (boss.sparkWarningLaser) {
-                        const targetAngle = Math.atan2(player.y - boss.y, player.x - boss.x); let angleDiff = targetAngle - boss.sparkAngle;
-                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2; while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                        boss.sparkAngle += angleDiff * 0.02; boss.sparkWarningLaser.angle = boss.sparkAngle;
+                        const targetAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
+                        let angleDiff = targetAngle - boss.sparkAngle;
+                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                        boss.sparkAngle += angleDiff * 0.02;
+                        boss.sparkWarningLaser.angle = boss.sparkAngle;
                     }
                 } else if (boss.sparkState === 'aiming' && phaseTimeInCycle >= 28) {
-                      boss.sparkState = 'locking';
-                      const playerAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
-                      let angleDiff = playerAngle - boss.sparkAngle;
-                      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2; while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                      boss.sparkSweepDirection = Math.sign(angleDiff) || 1;
-                } else if (boss.sparkState === 'locking' && phaseTimeInCycle >= 91) {
-                    boss.sparkState = 'firing'; if (boss.sparkWarningLaser) { boss.sparkWarningLaser.timer = 1; }
+                    boss.sparkState = 'locking';
+                    boss.sparkSweepDirection = (player.x < canvas.width / 2) ? -1 : 1;
+                } else if (boss.sparkState === 'locking' && phaseTimeInCycle >= fireStartTime) {
+                    boss.sparkState = 'firing';
+                    if (boss.sparkWarningLaser) { boss.sparkWarningLaser.timer = 1; }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A1', '2.5s'); } catch(e) {}
-                    const mainLaser = createLaser(boss.x, boss.y, 250, boss.sparkAngle, 91, 'rgb(255,100,255)');
+                    const mainLaser = createLaser(boss.x, boss.y, 250, boss.sparkAngle, laserDuration, 'rgb(255,100,255)');
                     mainLaser.baseAngle = boss.sparkAngle;
                     mainLaser.sweepDirection = boss.sparkSweepDirection;
+                    mainLaser.startTime = gameTime;
                     mainLaser.update = function() {
-                        const sweepRange = Math.PI / 2.5;
-                        const sweepSpeed = 0.03;
-                        this.angle = this.baseAngle + this.sweepDirection * Math.sin(gameTime * sweepSpeed) * sweepRange;
+                        const elapsedTime = gameTime - this.startTime;
+                        const progress = Math.min(1, elapsedTime / laserDuration);
+                        const sweepRange = Math.PI / 2.8;
+                        this.angle = this.baseAngle + this.sweepDirection * Math.sin(progress * Math.PI) * sweepRange;
 
-                        if (gameTime % 5 === 0) {
-                            for(let j=0; j<2; j++){
-                                for (let i = -1; i <= 1; i += 2) {
-                                    const angle = this.angle + (Math.PI / 2 + (Math.random() - 0.5) * 0.2) * i;
-                                    const x = boss.x + Math.cos(angle) * 150; const y = boss.y + Math.sin(angle) * 150;
-                                    createEnemyBullet(x, y, 4, this.angle, rainbowColor(), Math.random() * 6 + 6, 'star');
-                                }
+                        if (gameTime % 3 === 0) {
+                            for (let i = -1; i <= 1; i += 2) {
+                                const bullet = createEnemyBullet(boss.x, boss.y, 5, this.angle, rainbowColor(), 7, 'star');
+                                const laserRef = this;
+                                bullet.spawnTime = gameTime;
+                                bullet.waveDirection = i;
+                                bullet.update = function() {
+                                    const time = gameTime - this.spawnTime;
+                                    const travelDistance = time * this.speed;
+                                    const baseX = laserRef.x + Math.cos(laserRef.angle) * travelDistance;
+                                    const baseY = laserRef.y + Math.sin(laserRef.angle) * travelDistance;
+                                    const perpAngle = laserRef.angle + Math.PI / 2;
+                                    const waveAmplitude = 20 + travelDistance * 0.08;
+                                    const waveFrequency = 0.12;
+                                    const offset = this.waveDirection * Math.sin(time * waveFrequency) * waveAmplitude;
+                                    this.x = baseX + Math.cos(perpAngle) * offset;
+                                    this.y = baseY + Math.sin(perpAngle) * offset;
+                                    if (this.x < -this.radius || this.x > canvas.width + this.radius || this.y < -this.radius || this.y > canvas.height + this.radius) {
+                                        const index = enemyBullets.indexOf(this);
+                                        if (index > -1) enemyBullets.splice(index, 1);
+                                    }
+                                };
                             }
                         }
                     }
-                } else if (boss.sparkState === 'firing' && phaseTimeInCycle > 182) {
-                    boss.sparkState = 'idle';
                 }
             }
 
@@ -1610,8 +1691,6 @@
                 }
             }
 
-            // ★★★★★ 修正点 ★★★★★
-            // ブレイジングスターのオーラ有効化、軌跡のサイズを2倍に変更
             function blazingStar() {
                 if (boss.phaseTimer === 1) {
                     boss.isBlazing = true;
@@ -1642,7 +1721,7 @@
                     boss.y += boss.dy;
                     boss.dashTimer--;
                     const trailSegment = {
-                        x: boss.x, y: boss.y, life: 60, alpha: 0, radius: 30, // 軌跡のサイズを2倍に
+                        x: boss.x, y: boss.y, life: 60, alpha: 0, radius: 30,
                         angle: Math.atan2(boss.dy, boss.dx)
                     };
                     if(boss.trails) boss.trails.push(trailSegment);
