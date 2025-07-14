@@ -55,14 +55,12 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            /* ★★★★★ 修正点 ★★★★★ */
-            /* スケーリングのために中央揃えを設定 */
             display: flex;
             justify-content: center;
             align-items: center;
         }
         #game-wrapper {
-             /* 親がflexboxになったため、シンプルな設定でOK */
+             /* Wrapper for scaling */
         }
         #game-container {
             display: flex;
@@ -70,10 +68,7 @@
             box-shadow: 0 0 20px #ff00ff;
             width: 804px;
             height: 804px;
-            /* ★★★★★ 修正点 ★★★★★ */
-            /* JSでスケーリングするため、transform-originを設定 */
             transform-origin: center center;
-            /* JSで制御するため、可変サイズ指定は削除 */
         }
         #game-canvas-wrapper {
             position: relative;
@@ -281,6 +276,48 @@
             100% { left: -100%; opacity: 0; }
         }
 
+        /* ★★★★★ 修正点 ★★★★★ */
+        /* JSでクラスを付与してスマホレイアウトを制御 */
+        body.mobile-layout #game-container {
+            flex-direction: column;
+            width: 100%;
+            height: 100%; /* JSが 'vh' 単位の問題を解決 */
+            border: none;
+            box-shadow: none;
+        }
+        body.mobile-layout #game-canvas-wrapper {
+            flex-grow: 1;
+            min-height: 0; /* flex-growを正しく機能させるため */
+        }
+        body.mobile-layout #sidebar {
+            width: 100%;
+            height: auto;
+            flex-shrink: 0;
+            border-left: none;
+            border-top: 2px solid #fff;
+            flex-direction: column;
+            justify-content: center;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        body.mobile-layout #info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px 10px;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        body.mobile-layout #sidebar .info {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+        body.mobile-layout #sidebar h2 {
+            font-size: clamp(14px, 4.5vw, 18px);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body>
@@ -390,6 +427,8 @@
             const spellCardCutinNameEl = document.getElementById('spell-card-cutin-name');
 
             const POC_LINE_Y = 200;
+            const BASE_WIDTH = 804;
+            const BASE_HEIGHT = 804;
 
             const youseiMidoriImg = document.getElementById('yousei-midori-img');
             const youseiKiiroImg = document.getElementById('yousei-kiiro-img');
@@ -405,6 +444,28 @@
             let currentBossName = '';
 
             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+            // ★★★★★ 修正点 ★★★★★
+            // スマホ表示のレイアウト崩れを修正する関数
+            function handleResize() {
+                const isMobileSize = window.innerWidth <= 850;
+
+                if (isMobileSize) {
+                    document.body.classList.add('mobile-layout');
+                    const scale = Math.min(window.innerWidth / 600, window.innerHeight / 800);
+                    gameContainer.style.transform = `scale(${scale})`;
+                    gameContainer.style.width = `804px`;
+                    gameContainer.style.height = `804px`;
+                } else {
+                    document.body.classList.remove('mobile-layout');
+                    gameContainer.style.transform = 'scale(1)';
+                    gameContainer.style.width = '804px';
+                    gameContainer.style.height = '804px';
+                }
+            }
+
+            window.addEventListener('resize', handleResize);
+            window.addEventListener('orientationchange', handleResize);
 
             if (isMobile) {
                 document.getElementById('mobile-controls').style.display = 'block';
@@ -2017,7 +2078,6 @@
             }
 
             function createSpellCardClearVFX() {
-                 try { if(sfx) sfx.spellClear.triggerAttackRelease("C6", "2s"); } catch(e) {}
                  vfx.push({
                      life: 30, alpha: 1.0,
                      update: function() { this.life--; this.alpha = (this.life/30); return this.life <= 0; },
