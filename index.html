@@ -276,18 +276,18 @@
             100% { left: -100%; opacity: 0; }
         }
 
+        /* ★★★★★ 修正点 ★★★★★ */
+        /* レスポンシブレイアウトをGridに変更し、安定性を向上 */
         @media (max-width: 850px) {
             #game-container {
                 display: grid;
-                grid-template-columns: 1fr;
                 grid-template-rows: 1fr auto;
                 width: 100vw;
-                height: 100vh;
+                /* height: 100vh; JSで制御するため削除 */
                 border: none;
                 box-shadow: none;
             }
             #game-canvas-wrapper {
-                width: 100%;
                 position: relative;
                 overflow: hidden;
             }
@@ -304,16 +304,18 @@
                 justify-content: center;
                 align-items: center;
                 padding: 5px;
+                box-sizing: border-box;
             }
             #info-grid {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 2px 15px;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2px 10px;
                 width: 100%;
                 padding: 0 5px;
                 box-sizing: border-box;
             }
             #sidebar h2 {
+                grid-column: 1 / -1;
                 font-size: clamp(14px, 4.5vw, 18px);
                 margin-bottom: 8px;
                 text-align: center;
@@ -416,6 +418,8 @@
         window.onload = function() {
             // --- 初期設定 ---
             const canvas = document.getElementById('game-canvas');
+            const gameContainer = document.getElementById('game-container');
+            const canvasWrapper = document.getElementById('game-canvas-wrapper');
             const ctx = canvas.getContext('2d');
             let screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
             const scoreEl = document.getElementById('score');
@@ -585,6 +589,19 @@
                 nextEventIndex: 0, bossQueue: ['marisa']
             };
 
+            // ★★★★★ 修正点 ★★★★★
+            // スマホ表示のレイアウト崩れを修正
+            function resizeGameContainer() {
+                if (window.innerWidth <= 850) {
+                    gameContainer.style.height = window.innerHeight + 'px';
+                } else {
+                    gameContainer.style.height = '804px';
+                }
+            }
+            window.addEventListener('resize', resizeGameContainer);
+            window.addEventListener('orientationchange', resizeGameContainer);
+            resizeGameContainer(); // 初期ロード時にも実行
+
             window.addEventListener('keydown', (e) => {
                 const key = e.key.toLowerCase();
                 keys[key] = true;
@@ -606,10 +623,13 @@
                 }
             });
             window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
-            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-            canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+            // ★★★★★ 修正点 ★★★★★
+            // タッチイベントのリスナーをcanvasの親要素に変更
+            canvasWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvasWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvasWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
+            canvasWrapper.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
             startScreen.addEventListener('click', () => {
                 if (!gameStarted) {
@@ -1244,8 +1264,6 @@
                         if (currentPhase.type === 'spell') {
                             if (boss.hp <= 0 && boss.state !== 'PHASE_ENDING') {
                                 boss.state = 'PHASE_ENDING';
-                                score += 50000;
-                                createSpellCardClearVFX(boss);
                                 setTimeout(() => {
                                     startNextBossPhase();
                                 }, 1000);
@@ -1417,7 +1435,7 @@
                             };
                             break;
                         case 'final_rush_fairy':
-                             enemy = { hp: 10, score: 200, shootCooldown: 50, shootTimer: 0, x: 0, y: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveTimer: i * 10,
+                             enemy = { hp: 8, score: 200, shootCooldown: 50, shootTimer: 0, x: 0, y: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveTimer: i * 10,
                                 update() {
                                     this.moveTimer++;
                                     const side = i % 2 === 0 ? 1 : -1;
@@ -1467,7 +1485,7 @@
                 showOverlayMessage(`${bossNameJP}が現れた...`, 180);
                 setTimeout(() => {
                     let dialogueLines = name === 'reimu' ? [ '<p><strong>霊夢:</strong> ん？ この妖気…ただの河童じゃないわね。神社の裏でコソコソと…何をしているのかしら？</p>', '<p><strong>にとり:</strong> ひゃっ！？ は、博麗の巫女…！ い、いや、これはただのガラクタでして…そう、ガラクタ！けして怪しいものじゃ…！</p>', '<p><strong>霊夢:</strong> その割には随分と物々しい気配じゃない。まあ、何だっていいわ。神社の敷地内で騒ぎを起こすなら、容赦はしない。それが幻想郷のルールよ。</p>', '<p><strong>にとり:</strong> うぅ…やっぱりこうなるのか…！ でも、この『超弩級スーパーすごいマシン』だけは渡せない！これは河童の技術の結晶なんだから！</p>', '<p><strong>霊夢:</strong> はいはい、威勢がいいのは結構。そのすごいマシンとやらで、どこまでやれるか見せてもらうわ！</p>' ]
-                                             : [ '<p><strong>魔理沙:</strong> おっと、こんな森の奥で派手な花火を上げてるのはどこのどいつだ？ なんだか面白そうな匂いがプンプンするぜ！</p>', '<p><strong>にとり:</strong> げっ！ あんたは白黒の魔法使い…！ な、んでこんな所に…！</p>', '<p><strong>魔理沙:</strong> なんでって、そりゃ魔法の実験に決まってるだろ？ それよりお前が持ってるソレ、すっごい魔力を感じるな。ちょっと貸してみろ！</p>', '<p><strong>にとり:</strong> だ、だめ！ これは私のきゅーかんばーぴっくるす…じゃなくて！私の血と汗と涙の結晶なんだから！あんたみたいな泥棒に渡してたまるもんですか！</p>', '<p><strong>魔理沙:</strong> 泥棒とはひどい言い草だな。私はただ借りるだけだぜ、永遠にな！ 弾幕ごっこで決めようぜ、それが手っ取り早い！</p>' ];
+                                             : [ '<p><strong>魔理沙:</strong> おっと、こんな森の奥で派手な花火を上げてるのはどこのどいつだ？ なんだか面白そうな匂いがプンプンするぜ！</p>', '<p><strong>にとり:</strong> げっ！ あんたは白黒の魔法使い…！ な、なんでこんな所に…！</p>', '<p><strong>魔理沙:</strong> なんでって、そりゃ魔法の実験に決まってるだろ？ それよりお前が持ってるソレ、すっごい魔力を感じるな。ちょっと貸してみろ！</p>', '<p><strong>にとり:</strong> だ、だめ！ これは私のきゅーかんばーぴっくるす…じゃなくて！私の血と汗と涙の結晶なんだから！あんたみたいな泥棒に渡してたまるもんですか！</p>', '<p><strong>魔理沙:</strong> 泥棒とはひどい言い草だな。私はただ借りるだけだぜ、永遠にな！ 弾幕ごっこで決めようぜ、それが手っ取り早い！</p>' ];
                     let currentLineIndex = 0;
                     dialogueBox.style.display = 'block';
                     const showNextLine = () => {
@@ -1486,9 +1504,9 @@
             }
 
             function startNextBossPhase() {
-                if (boss.state === 'PHASE_ENDING') {
+                if (boss.hp <= 0 && boss.state !== 'DEFEATED') {
                     score += 50000;
-                    createSpellCardClearVFX(boss);
+                    createSpellCardClearVFX();
                     enemyBullets.forEach(b => {
                         spawnScoreItem(b.x, b.y);
                     });
@@ -1516,6 +1534,7 @@
                 boss.canAttack = false;
 
                 if (currentPhase.type === 'spell') {
+                    createMagicCircle(boss.x, boss.y, 300, 9999, currentBossName === 'reimu' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(200, 100, 255, 0.3)');
                     spellCardNameEl.textContent = currentPhase.card.name;
                     spellCardCutinNameEl.textContent = currentPhase.card.name;
                     bossCutinImg.src = boss.img.src;
@@ -2082,17 +2101,22 @@
                  }
             }
              function createBossDefeatVFX(x, y) {
-                try { if(sfx) sfx.bossDefeat.triggerAttackRelease("4n"); } catch(e) {}
-                for(let i=0; i < 5; i++) {
-                    setTimeout(() => {
-                        createExplosion(x + (Math.random() - 0.5) * 80, y + (Math.random() - 0.5) * 80, rainbowColor(), 100);
-                        triggerScreenShake(15, 20);
-                    }, i * 200);
+                let explosionCount = 0;
+                function createStagedExplosion() {
+                    if (explosionCount >= 5) {
+                        setTimeout(() => {
+                            createExplosion(x, y, '#ffffff', 300, 2);
+                            triggerScreenShake(30, 60);
+                        }, 200);
+                        return;
+                    }
+                    createExplosion(x + (Math.random() - 0.5) * 80, y + (Math.random() - 0.5) * 80, rainbowColor(), 100);
+                    triggerScreenShake(15, 20);
+                    explosionCount++;
+                    setTimeout(createStagedExplosion, 200);
                 }
-                setTimeout(() => {
-                    createExplosion(x, y, '#ffffff', 300, 2);
-                    triggerScreenShake(30, 60);
-                }, 1000);
+                try { if(sfx) sfx.bossDefeat.triggerAttackRelease("4n"); } catch(e) {}
+                createStagedExplosion();
             }
 
             function createMagicCircle(x, y, radius, duration, color) {
