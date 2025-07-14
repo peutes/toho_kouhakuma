@@ -276,20 +276,18 @@
             100% { left: -100%; opacity: 0; }
         }
 
-        /* ★★★★★ 修正点 ★★★★★ */
-        /* JSでクラスを付与してスマホレイアウトを制御 */
-        body.mobile-layout #game-container {
+        .mobile-layout #game-container {
             flex-direction: column;
             width: 100%;
-            height: 100%; /* JSが 'vh' 単位の問題を解決 */
+            height: 100%;
             border: none;
             box-shadow: none;
         }
-        body.mobile-layout #game-canvas-wrapper {
+        .mobile-layout #game-canvas-wrapper {
             flex-grow: 1;
-            min-height: 0; /* flex-growを正しく機能させるため */
+            min-height: 0;
         }
-        body.mobile-layout #sidebar {
+        .mobile-layout #sidebar {
             width: 100%;
             height: auto;
             flex-shrink: 0;
@@ -300,7 +298,7 @@
             padding: 5px;
             box-sizing: border-box;
         }
-        body.mobile-layout #info-grid {
+        .mobile-layout #info-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 2px 10px;
@@ -308,16 +306,23 @@
             padding: 0 10px;
             box-sizing: border-box;
         }
-        body.mobile-layout #sidebar .info {
+        .mobile-layout #sidebar h2 {
+            grid-column: 1 / -1;
+            font-size: clamp(14px, 4.5vw, 18px);
+            margin: 5px 0;
+            text-align: center;
+        }
+        .mobile-layout #sidebar .info {
             font-size: 11px;
             margin-bottom: 2px;
         }
-        body.mobile-layout #sidebar h2 {
-            font-size: clamp(14px, 4.5vw, 18px);
-            margin-bottom: 8px;
-            text-align: center;
+        .mobile-layout #dialogue-box {
+            height: 160px;
+            bottom: 10px;
+            left: 5%;
+            width: 90%;
+            font-size: 12px;
         }
-
     </style>
 </head>
 <body>
@@ -427,8 +432,6 @@
             const spellCardCutinNameEl = document.getElementById('spell-card-cutin-name');
 
             const POC_LINE_Y = 200;
-            const BASE_WIDTH = 804;
-            const BASE_HEIGHT = 804;
 
             const youseiMidoriImg = document.getElementById('yousei-midori-img');
             const youseiKiiroImg = document.getElementById('yousei-kiiro-img');
@@ -440,27 +443,25 @@
             let gameStarted = false;
             let gameTime = 0;
             let score = 0;
+            let firstEnemyKilled = false;
             const keys = {};
             let currentBossName = '';
 
             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
-            // ★★★★★ 修正点 ★★★★★
-            // スマホ表示のレイアウト崩れを修正する関数
             function handleResize() {
-                const isMobileSize = window.innerWidth <= 850;
+                const isMobileSize = window.matchMedia("(max-width: 850px)").matches;
 
                 if (isMobileSize) {
                     document.body.classList.add('mobile-layout');
-                    const scale = Math.min(window.innerWidth / 600, window.innerHeight / 800);
-                    gameContainer.style.transform = `scale(${scale})`;
-                    gameContainer.style.width = `804px`;
-                    gameContainer.style.height = `804px`;
+                    // 実際の表示領域の高さを取得して適用
+                    gameContainer.style.height = window.innerHeight + 'px';
+                    gameContainer.style.width = '100%';
                 } else {
                     document.body.classList.remove('mobile-layout');
-                    gameContainer.style.transform = 'scale(1)';
-                    gameContainer.style.width = '804px';
-                    gameContainer.style.height = '804px';
+                    // PC用の固定サイズに戻す
+                    gameContainer.style.height = '';
+                    gameContainer.style.width = '';
                 }
             }
 
@@ -632,12 +633,14 @@
                     Tone.start().then(() => {
                         if (!setupAudio()) console.error("効果音の初期化に失敗しました。");
                         preRenderGraphics();
+                        handleResize(); // ★★★★★ 修正点 ★★★★★
                         gameStarted = true;
                         startScreen.style.display = 'none';
                         resetGame();
                         gameLoop();
                     }).catch(error => {
                         preRenderGraphics();
+                        handleResize(); // ★★★★★ 修正点 ★★★★★
                         gameStarted = true;
                         startScreen.style.display = 'none';
                         resetGame();
@@ -673,6 +676,7 @@
 
             function resetGame() {
                 gameTime = 0; score = 0;
+                firstEnemyKilled = false;
                 player.lives = 100; player.power = 0; player.graze = 0; player.bombs = 3;
                 player.x = canvas.width / 2; player.y = canvas.height - 100;
                 bullets = []; enemyBullets = []; enemies = []; particles = []; vfx = []; powerUps = []; lasers = []; bombItems = []; scoreItems = []; playerBombs = [];
@@ -959,9 +963,9 @@
                 const speed = 18; const shotLevel = Math.floor(player.power / 10); const shotCount = Math.min(5, 1 + shotLevel);
                 if (shotCount === 1) { bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); }
                 else if (shotCount === 2) { bullets.push({ x: player.x - 8, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 8, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); }
-                else if (shotCount === 3) { bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 15, y: player.y, dx: -0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 15, y: player.y, dx: 0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#87CEFA', damage: 15 }); }
-                else if (shotCount === 4) { bullets.push({ x: player.x - 8, y: player.y, dx: -0.05 * speed, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 8, y: player.y, dx: 0.05 * speed, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 20, y: player.y, dx: -0.15 * speed, dy: -0.9 * speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 20, y: player.y, dx: 0.15 * speed, dy: -0.9 * speed, radius: 5, color: '#87CEFA', damage: 15 }); }
-                else if (shotCount >= 5) { bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 15, y: player.y, dx: -0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 15, y: player.y, dx: 0.1 * speed, dy: -0.95 * speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 30, y: player.y, dx: -0.2 * speed, dy: -0.9 * speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 30, y: player.y, dx: 0.2 * speed, dy: -0.9 * speed, radius: 5, color: '#87CEFA', damage: 15 }); }
+                else if (shotCount === 3) { bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 15, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 15, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); }
+                else if (shotCount === 4) { bullets.push({ x: player.x - 8, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 8, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 20, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 20, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); }
+                else if (shotCount >= 5) { bullets.push({ x: player.x, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 12, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 12, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x - 24, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); bullets.push({ x: player.x + 24, y: player.y, dx: 0, dy: -speed, radius: 5, color: '#87CEFA', damage: 15 }); }
                 player.options.forEach(opt => {
                     const missile = { x: player.x + opt.x, y: player.y + opt.y, radius: 6, color: '#32cd32', damage: 25, speed: 8, angle: -Math.PI / 2, turnRate: 0.05, target: null, life: 300, lockedOn: false,
                         update: function() {
@@ -1139,13 +1143,18 @@
                             try { if(sfx) sfx.enemyHit.triggerAttackRelease('C2', '8n'); } catch(err) {}
                             score += e.score;
 
-                            const dropRoll = Math.random();
-                            if (dropRoll < 0.20) {
+                            if (!firstEnemyKilled) {
                                 spawnPowerUp(e.x, e.y);
-                            } else if (dropRoll < 0.50) {
-                                spawnScoreItem(e.x, e.y);
-                            } else if (dropRoll < 0.55) {
-                                spawnBombItem(e.x, e.y);
+                                firstEnemyKilled = true;
+                            } else {
+                                const dropRoll = Math.random();
+                                if (dropRoll < 0.20) {
+                                    spawnPowerUp(e.x, e.y);
+                                } else if (dropRoll < 0.50) {
+                                    spawnScoreItem(e.x, e.y);
+                                } else if (dropRoll < 0.55) {
+                                    spawnBombItem(e.x, e.y);
+                                }
                             }
 
                             createExplosion(e.x, e.y, '#fff', 20);
@@ -1260,7 +1269,6 @@
                         if (currentPhase.type === 'spell') {
                             if (boss.hp <= 0 && boss.state !== 'PHASE_ENDING') {
                                 boss.state = 'PHASE_ENDING';
-                                createSpellCardClearVFX();
                                 setTimeout(() => {
                                     startNextBossPhase();
                                 }, 1000);
@@ -1482,7 +1490,7 @@
                 showOverlayMessage(`${bossNameJP}が現れた...`, 180);
                 setTimeout(() => {
                     let dialogueLines = name === 'reimu' ? [ '<p><strong>霊夢:</strong> ん？ この妖気…ただの河童じゃないわね。神社の裏でコソコソと…何をしているのかしら？</p>', '<p><strong>にとり:</strong> ひゃっ！？ は、博麗の巫女…！ い、いや、これはただのガラクタでして…そう、ガラクタ！けして怪しいものじゃ…！</p>', '<p><strong>霊夢:</strong> その割には随分と物々しい気配じゃない。まあ、何だっていいわ。神社の敷地内で騒ぎを起こすなら、容赦はしない。それが幻想郷のルールよ。</p>', '<p><strong>にとり:</strong> うぅ…やっぱりこうなるのか…！ でも、この『超弩級スーパーすごいマシン』だけは渡せない！これは河童の技術の結晶なんだから！</p>', '<p><strong>霊夢:</strong> はいはい、威勢がいいのは結構。そのすごいマシンとやらで、どこまでやれるか見せてもらうわ！</p>' ]
-                                             : [ '<p><strong>魔理沙:</strong> おっと、こんな森の奥で派手な花火を上げてるのはどこのどいつだ？ なんだか面白そうな匂いがプンプンするぜ！</p>', '<p><strong>にとり:</strong> げっ！ あんたは白黒の魔法使い…！ な、んでこんな所に…！</p>', '<p><strong>魔理沙:</strong> なんでって、そりゃ魔法の実験に決まってるだろ？ それよりお前が持ってるソレ、すっごい魔力を感じるな。ちょっと貸してみろ！</p>', '<p><strong>にとり:</strong> だ、だめ！ これは私のきゅーかんばーぴっくるす…じゃなくて！私の血と汗と涙の結晶なんだから！あんたみたいな泥棒に渡してたまるもんですか！</p>', '<p><strong>魔理沙:</strong> 泥棒とはひどい言い草だな。私はただ借りるだけだぜ、永遠にな！ 弾幕ごっこで決めようぜ、それが手っ取り早い！</p>' ];
+                                             : [ '<p><strong>魔理沙:</strong> おっと、こんな森の奥で派手な花火を上げてるのはどこのどいつだ？ なんだか面白そうな匂いがプンプンするぜ！</p>', '<p><strong>にとり:</strong> げっ！ あんたは白黒の魔法使い…！ な、なんでこんな所に…！</p>', '<p><strong>魔理沙:</strong> なんでって、そりゃ魔法の実験に決まってるだろ？ それよりお前が持ってるソレ、すっごい魔力を感じるな。ちょっと貸してみろ！</p>', '<p><strong>にとり:</strong> だ、だめ！ これは私のきゅーかんばーぴっくるす…じゃなくて！私の血と汗と涙の結晶なんだから！あんたみたいな泥棒に渡してたまるもんですか！</p>', '<p><strong>魔理沙:</strong> 泥棒とはひどい言い草だな。私はただ借りるだけだぜ、永遠にな！ 弾幕ごっこで決めようぜ、それが手っ取り早い！</p>' ];
                     let currentLineIndex = 0;
                     dialogueBox.style.display = 'block';
                     const showNextLine = () => {
@@ -1503,7 +1511,7 @@
             function startNextBossPhase() {
                 if (boss.hp <= 0 && boss.state !== 'DEFEATED') {
                     score += 50000;
-                    createSpellCardClearVFX();
+                    createSpellCardClearVFX(boss);
                     enemyBullets.forEach(b => {
                         spawnScoreItem(b.x, b.y);
                     });
@@ -1720,13 +1728,25 @@
                 }
             }
             function paparazziBoundary() {
-                if (boss.phaseTimer % 150 === 1) {
+                if (boss.phaseTimer % 150 === 1) { // Horizontal walls
                     const gapSize = 120; const gapY = Math.random() * (canvas.height - gapSize);
-                    for (let y = 0; y < canvas.height; y += 20) { if (y > gapY && y < gapY + gapSize) continue; createEnemyBullet(0, y, 3, 0, null, 5, 'amulet'); createEnemyBullet(canvas.width, y, -3, 0, null, 5, 'amulet'); }
+                    for (let y = 0; y < canvas.height; y += 20) {
+                        if (y > gapY && y < gapY + gapSize) continue;
+                        const b1 = createEnemyBullet(0, y, 3, 0, null, 5, 'amulet');
+                        b1.angle = Math.PI / 2; // Rotate sprite
+                        const b2 = createEnemyBullet(canvas.width, y, 3, Math.PI, null, 5, 'amulet');
+                        b2.angle = Math.PI / 2; // Rotate sprite
+                    }
                 }
-                if (boss.phaseTimer % 150 === 75) {
+                if (boss.phaseTimer % 150 === 75) { // Vertical walls
                     const gapSize = 120; const gapX = Math.random() * (canvas.width - gapSize);
-                    for (let x = 0; x < canvas.width; x += 20) { if (x > gapX && x < gapX + gapSize) continue; createEnemyBullet(x, 0, 3, Math.PI / 2, null, 5, 'amulet'); createEnemyBullet(x, canvas.height, 3, -Math.PI / 2, null, 5, 'amulet'); }
+                    for (let x = 0; x < canvas.width; x += 20) {
+                        if (x > gapX && x < gapX + gapSize) continue;
+                        const b3 = createEnemyBullet(x, 0, 3, Math.PI / 2, null, 5, 'amulet');
+                        b3.angle = 0; // Keep sprite vertical
+                        const b4 = createEnemyBullet(x, canvas.height, 3, -Math.PI / 2, null, 5, 'amulet');
+                        b4.angle = 0; // Keep sprite vertical
+                    }
                 }
             }
             function fantasySealClump() {
@@ -2078,6 +2098,7 @@
             }
 
             function createSpellCardClearVFX() {
+                 try { if(sfx) sfx.spellClear.triggerAttackRelease("C6", "2s"); } catch(e) {}
                  vfx.push({
                      life: 30, alpha: 1.0,
                      update: function() { this.life--; this.alpha = (this.life/30); return this.life <= 0; },
