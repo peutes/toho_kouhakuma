@@ -276,26 +276,36 @@
             100% { left: -100%; opacity: 0; }
         }
 
+        /* --- ★ 修正: モバイルレイアウト関連のCSSを改善 --- */
         .mobile-layout #game-container {
             flex-direction: column;
-            width: 100%;
-            height: 100%;
+            width: 100%; /* JSで画面サイズに設定 */
+            height: 100%; /* JSで画面サイズに設定 */
             border: none;
             box-shadow: none;
         }
         .mobile-layout #game-canvas-wrapper {
-            flex-grow: 1;
+            flex-grow: 1; /* ★ 修正: 高さを可変に */
+            width: 100%;  /* ★ 修正: 幅を100%に */
             min-height: 0;
+            display: flex; /* ★ 修正: canvasを中央揃えにするためflexを追加 */
+            justify-content: center;
+            align-items: center;
+        }
+        .mobile-layout #game-canvas {
+            /* ★ 修正: JSでサイズを計算して適用するため、ここではリセット */
+            max-width: 100%;
+            max-height: 100%;
         }
         .mobile-layout #sidebar {
             width: 100%;
-            height: auto;
+            height: auto; /* ★ 修正: 高さを自動に */
             flex-shrink: 0;
             border-left: none;
             border-top: 2px solid #fff;
             flex-direction: column;
             justify-content: center;
-            padding: 5px;
+            padding: 5px; /* ★ 修正: パディングを調整 */
             box-sizing: border-box;
         }
         .mobile-layout #info-grid {
@@ -313,8 +323,17 @@
             text-align: center;
         }
         .mobile-layout #sidebar .info {
-            font-size: 11px;
+            font-size: clamp(11px, 3.5vw, 14px); /* ★ 修正: 文字サイズを可変に */
             margin-bottom: 2px;
+            flex-direction: column; /* ★ 修正: ラベルと値を縦に並べる */
+            align-items: flex-start;
+        }
+        .mobile-layout #sidebar .info-label {
+            color: #aaa;
+            font-size: 0.8em; /* ラベルを少し小さく */
+        }
+        .mobile-layout #sidebar .info-value {
+             align-self: flex-end; /* 値を右揃えに */
         }
         .mobile-layout #dialogue-box {
             height: 160px;
@@ -331,8 +350,7 @@
             <div id="game-canvas-wrapper">
                 <div id="start-screen">
                     <img src="https://peutes.github.io/toho_kouhakuma/img/title.png" alt="東方AI紅白魔">
-                    <p style="margin-top: 20px;">クリックしてスタート</p>
-                    <div class="controls">
+                    <p style="margin-top: 20px;">タップしてスタート</p> <div class="controls">
                         <div id="pc-controls" style="display: none;">
                             <p><b>操作説明(PC)</b></p>
                             <p>移動: 十字キー</p>
@@ -449,21 +467,51 @@
 
             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
+            // --- ★ 修正: 画面リサイズ処理を全面的に書き換え ---
             function handleResize() {
                 const isMobileSize = window.matchMedia("(max-width: 850px)").matches;
 
                 if (isMobileSize) {
                     document.body.classList.add('mobile-layout');
-                    // 実際の表示領域の高さを取得して適用
+                    // モバイルレイアウト: コンテナを画面全体に広げる
                     gameContainer.style.height = window.innerHeight + 'px';
-                    gameContainer.style.width = '100%';
+                    gameContainer.style.width = '100vw';
+
+                    // FlexboxがcanvasWrapperのサイズを決めるのを待ってからCanvasをスケーリング
+                    setTimeout(() => {
+                        const wrapperRect = canvasWrapper.getBoundingClientRect();
+                        if (wrapperRect.width === 0 || wrapperRect.height === 0) return;
+
+                        const canvasAspectRatio = canvas.width / canvas.height; // 600 / 800 = 0.75
+                        const wrapperAspectRatio = wrapperRect.width / wrapperRect.height;
+
+                        let newWidth, newHeight;
+
+                        if (wrapperAspectRatio > canvasAspectRatio) {
+                            // ラッパーが横長の場合、高さを基準に合わせる
+                            newHeight = wrapperRect.height;
+                            newWidth = newHeight * canvasAspectRatio;
+                        } else {
+                            // ラッパーが縦長の場合、幅を基準に合わせる
+                            newWidth = wrapperRect.width;
+                            newHeight = newWidth / canvasAspectRatio;
+                        }
+
+                        canvas.style.width = `${newWidth}px`;
+                        canvas.style.height = `${newHeight}px`;
+
+                    }, 50); // レイアウト計算のための僅かな遅延
+
                 } else {
+                    // PCレイアウト
                     document.body.classList.remove('mobile-layout');
-                    // PC用の固定サイズに戻す
                     gameContainer.style.height = '';
                     gameContainer.style.width = '';
+                    canvas.style.width = '';
+                    canvas.style.height = '';
                 }
             }
+
 
             window.addEventListener('resize', handleResize);
             window.addEventListener('orientationchange', handleResize);
@@ -616,8 +664,8 @@
                     }
                     if (key === 'k') {
                          if (boss.active && boss.phases[boss.currentPhaseIndex]?.type === 'spell') {
-                            boss.hp = 0;
-                        }
+                             boss.hp = 0;
+                         }
                     }
                 }
             });
@@ -628,26 +676,43 @@
             canvasWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
             canvasWrapper.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-            startScreen.addEventListener('click', () => {
-                if (!gameStarted) {
-                    Tone.start().then(() => {
+            // --- ★ 修正: ゲーム開始処理を関数化し、タップイベント(touchend)にも対応 ---
+            function startGame() {
+                if (gameStarted) return; // 既に開始していたら何もしない
+
+                // Tone.js (音声)のコンテキストを開始
+                Tone.start().then(() => {
+                    // 音声が利用可能な場合の処理
+                    if (!sfx) { // sfxが未初期化の場合のみ初期化
                         if (!setupAudio()) console.error("効果音の初期化に失敗しました。");
-                        preRenderGraphics();
-                        handleResize(); // ★★★★★ 修正点 ★★★★★
-                        gameStarted = true;
-                        startScreen.style.display = 'none';
-                        resetGame();
-                        gameLoop();
-                    }).catch(error => {
-                        preRenderGraphics();
-                        handleResize(); // ★★★★★ 修正点 ★★★★★
-                        gameStarted = true;
-                        startScreen.style.display = 'none';
-                        resetGame();
-                        gameLoop();
-                    });
-                }
+                    }
+                    // ゲーム開始
+                    preRenderGraphics();
+                    handleResize();
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    resetGame();
+                    gameLoop();
+                }).catch(error => {
+                    // 音声が利用不可の場合でもゲームは開始する
+                    console.warn("音声コンテキストを開始できませんでした。音声なしでゲームを開始します。", error);
+                    preRenderGraphics();
+                    handleResize();
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    resetGame();
+                    gameLoop();
+                });
+            }
+
+            startScreen.addEventListener('click', startGame);
+            startScreen.addEventListener('touchend', (e) => {
+                e.preventDefault(); // ダブルタップによるズームなどを防ぐ
+                startGame();
             });
+
+            // ★ 初期ロード時に一度呼び出し
+            handleResize();
 
             function preRenderGraphics() {
                 const colors = ['#ff0000', '#ff7f00', '#ffff00', '#008000', '#0000ff', '#9400d3', '#ff00ff', '#ffffff'];
@@ -805,7 +870,7 @@
                 lasers.forEach(l => {
                     ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.angle); ctx.globalAlpha = l.alpha;
                     if (l.width > 20 && !l.isWarning) {
-                         const grad = ctx.createLinearGradient(0, -l.width / 2, 0, l.width / 2);
+                        const grad = ctx.createLinearGradient(0, -l.width / 2, 0, l.width / 2);
                         grad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
                         grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.8)');
                         grad.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
@@ -1202,8 +1267,8 @@
 
                         if (t.life === 58) {
                             for(let j=0; j < 1; j++) {
-                               const angle = t.angle + (Math.random() - 0.5) * Math.PI;
-                               createEnemyBullet(t.x, t.y, 2 + Math.random(), angle, rainbowColor(), 9, 'star');
+                                const angle = t.angle + (Math.random() - 0.5) * Math.PI;
+                                createEnemyBullet(t.x, t.y, 2 + Math.random(), angle, rainbowColor(), 9, 'star');
                             }
                         }
 
@@ -1257,12 +1322,12 @@
                         if (!currentPhase) return;
 
                         if (boss.sparkState !== 'MOVING') {
-                           const dx = boss.targetX - boss.x, dy = boss.targetY - boss.y;
-                           const dist = Math.hypot(dx, dy);
-                           if (dist > boss.speed) {
-                               boss.x += dx / dist * boss.speed;
-                               boss.y += dy / dist * boss.speed;
-                           }
+                            const dx = boss.targetX - boss.x, dy = boss.targetY - boss.y;
+                            const dist = Math.hypot(dx, dy);
+                            if (dist > boss.speed) {
+                                boss.x += dx / dist * boss.speed;
+                                boss.y += dy / dist * boss.speed;
+                            }
                         }
 
                         boss.phaseTimer++;
@@ -1334,13 +1399,13 @@
                     });
                 }
                  if(boss.familiars) {
-                     boss.familiars.forEach(f => {
-                         if (f.type === 'photo' && f.state === 'active' && !player.invincible) {
-                             if (player.x > f.x && player.x < f.x + f.width && player.y > f.y && player.y < f.y + f.height) {
-                                 playerHit();
-                             }
-                         }
-                     });
+                      boss.familiars.forEach(f => {
+                          if (f.type === 'photo' && f.state === 'active' && !player.invincible) {
+                              if (player.x > f.x && player.x < f.x + f.width && player.y > f.y && player.y < f.y + f.height) {
+                                  playerHit();
+                              }
+                          }
+                      });
                  }
                 if (boss.isBlazing && Math.hypot(player.x - boss.x, player.y - boss.y) < boss.auraRadius + player.hitboxRadius) {
                     playerHit();
@@ -1399,7 +1464,7 @@
                             };
                             break;
                         case 'big_fairy':
-                             enemy = {
+                            enemy = {
                                 hp: 1000,
                                 score: 2000,
                                 shootCooldown: 4, shootTimer: 0, x: canvas.width/2, y: -50, width: 80, height: 80, img: youseiKiiroImg, angle: 0, moveTimer: 0,
@@ -1440,7 +1505,7 @@
                             };
                             break;
                         case 'final_rush_fairy':
-                             enemy = { hp: 10, score: 200, shootCooldown: 50, shootTimer: 0, x: 0, y: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveTimer: i * 10,
+                            enemy = { hp: 10, score: 200, shootCooldown: 50, shootTimer: 0, x: 0, y: 0, width: 50, height: 50, img: youseiMidoriImg, angle: 0, moveTimer: i * 10,
                                 update() {
                                     this.moveTimer++;
                                     const side = i % 2 === 0 ? 1 : -1;
@@ -1495,15 +1560,18 @@
                     dialogueBox.style.display = 'block';
                     const showNextLine = () => {
                         if (currentLineIndex < dialogueLines.length) {
-                            dialogueBox.innerHTML = `<div>${dialogueLines[currentLineIndex]}</div><div class="continue-prompt">▼ クリックして続行</div>`;
+                            dialogueBox.innerHTML = `<div>${dialogueLines[currentLineIndex]}</div><div class="continue-prompt">▼ タップして続行</div>`;
                             currentLineIndex++;
                         } else {
                             dialogueBox.style.display = 'none';
                             dialogueBox.removeEventListener('click', showNextLine);
+                            dialogueBox.removeEventListener('touchend', showNextLine); // ★ 修正: touchendも削除
                             startNextBossPhase();
                         }
                     };
+                    // ★ 修正: touchendにも対応
                     dialogueBox.addEventListener('click', showNextLine);
+                    dialogueBox.addEventListener('touchend', showNextLine);
                     showNextLine();
                 }, 3000);
             }
@@ -1589,11 +1657,12 @@
                 dialogueBox.style.display = 'block';
                 const showNextLine = () => {
                     if (currentLineIndex < dialogueLines.length) {
-                        dialogueBox.innerHTML = `<div>${dialogueLines[currentLineIndex]}</div><div class="continue-prompt">▼ クリックして続行</div>`;
+                        dialogueBox.innerHTML = `<div>${dialogueLines[currentLineIndex]}</div><div class="continue-prompt">▼ タップして続行</div>`;
                         currentLineIndex++;
                     } else {
                         dialogueBox.style.display = 'none';
                         dialogueBox.removeEventListener('click', showNextLine);
+                        dialogueBox.removeEventListener('touchend', showNextLine); // ★ 修正: touchendも削除
                         if (stage.bossQueue.length > 0) {
                             const nextBoss = stage.bossQueue.shift();
                             showOverlayMessage("WARNING!", 120);
@@ -1605,7 +1674,9 @@
                         }
                     }
                 };
+                // ★ 修正: touchendにも対応
                 dialogueBox.addEventListener('click', showNextLine);
+                dialogueBox.addEventListener('touchend', showNextLine);
                 showNextLine();
             }
 
@@ -1617,52 +1688,52 @@
             }
             function fantasySeal() {
                  if (boss.phaseTimer % 20 === 0) {
-                    createAura(boss, 120, 20, 'rgba(255, 105, 180, 0.4)');
-                    for (let i = 0; i < 8; i++) {
-                        const angle = (i * Math.PI * 2 / 8) + boss.phaseTimer * 0.05;
-                        const bullet = createEnemyBullet(boss.x, boss.y, 0, angle, null, 10, 'amulet');
-                        bullet.speed = 2.5; bullet.turnRate = 0.025; bullet.life = 150;
-                        bullet.update = function() {
-                            this.life--; if (this.life <= 0) { for (let k = 0; k < 8; k++) { createEnemyBullet(this.x, this.y, 4, (k * Math.PI * 2 / 8), null, 4, 'amulet'); } const index = enemyBullets.indexOf(this); if (index > -1) enemyBullets.splice(index, 1); return; }
-                            const targetAngle = Math.atan2(player.y - this.y, player.x - this.x); let angleDiff = targetAngle - this.angle;
-                            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2; while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                            this.angle += Math.max(-this.turnRate, Math.min(this.turnRate, angleDiff));
-                            this.dx = Math.cos(this.angle) * this.speed; this.dy = Math.sin(this.angle) * this.speed; this.x += this.dx; this.y += this.dy;
-                        }
-                    }
-                }
+                     createAura(boss, 120, 20, 'rgba(255, 105, 180, 0.4)');
+                     for (let i = 0; i < 8; i++) {
+                         const angle = (i * Math.PI * 2 / 8) + boss.phaseTimer * 0.05;
+                         const bullet = createEnemyBullet(boss.x, boss.y, 0, angle, null, 10, 'amulet');
+                         bullet.speed = 2.5; bullet.turnRate = 0.025; bullet.life = 150;
+                         bullet.update = function() {
+                             this.life--; if (this.life <= 0) { for (let k = 0; k < 8; k++) { createEnemyBullet(this.x, this.y, 4, (k * Math.PI * 2 / 8), null, 4, 'amulet'); } const index = enemyBullets.indexOf(this); if (index > -1) enemyBullets.splice(index, 1); return; }
+                             const targetAngle = Math.atan2(player.y - this.y, player.x - this.x); let angleDiff = targetAngle - this.angle;
+                             while (angleDiff > Math.PI) angleDiff -= Math.PI * 2; while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                             this.angle += Math.max(-this.turnRate, Math.min(this.turnRate, angleDiff));
+                             this.dx = Math.cos(this.angle) * this.speed; this.dy = Math.sin(this.angle) * this.speed; this.x += this.dx; this.y += this.dy;
+                         }
+                     }
+                 }
             }
             function evilSealingCircle() {
                  if (boss.phaseTimer % 150 === 1) {
-                    const circle = {
-                        x: player.x, y: player.y, radius: 250, life: 300, spawnCooldown: 0, rotation: Math.random() * Math.PI * 2, type: 'sealingCircle',
-                        update: function() {
-                            this.spawnCooldown--;
-                            if (this.life > 60 && this.spawnCooldown <= 0) {
-                                this.spawnCooldown = 6; this.rotation += 0.06;
-                                for (let j = 0; j < 10; j++) {
-                                    const angle = this.rotation + (j * Math.PI * 2 / 10); const sx = this.x + Math.cos(angle) * this.radius; const sy = this.y + Math.sin(angle) * this.radius;
-                                    const bullet = createEnemyBullet(sx, sy, 3, angle + Math.PI, null, 6, 'amulet');
-                                    createAura({x: sx, y: sy}, 20, 10, 'rgba(255, 136, 136, 0.5)');
-                                    const self = this;
-                                    bullet.update = function() {
-                                        this.x += this.dx; this.y += this.dy;
-                                        const dist = Math.hypot(this.x - self.x, this.y - self.y);
-                                        if (dist > self.radius + 10) { const index = enemyBullets.indexOf(this); if (index > -1) enemyBullets.splice(index, 1); }
-                                    };
-                                }
-                            }
-                        },
-                        draw: function(ctx) {
-                            ctx.save();
-                            ctx.globalAlpha = Math.min(1, (300 - this.life) / 60) * Math.min(1, this.life / 60);
-                            ctx.strokeStyle = '#ff8888'; ctx.lineWidth = 3;
-                            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
-                            ctx.restore();
-                        }
-                    };
-                    boss.familiars.push(circle);
-                }
+                     const circle = {
+                         x: player.x, y: player.y, radius: 250, life: 300, spawnCooldown: 0, rotation: Math.random() * Math.PI * 2, type: 'sealingCircle',
+                         update: function() {
+                             this.spawnCooldown--;
+                             if (this.life > 60 && this.spawnCooldown <= 0) {
+                                 this.spawnCooldown = 6; this.rotation += 0.06;
+                                 for (let j = 0; j < 10; j++) {
+                                     const angle = this.rotation + (j * Math.PI * 2 / 10); const sx = this.x + Math.cos(angle) * this.radius; const sy = this.y + Math.sin(angle) * this.radius;
+                                     const bullet = createEnemyBullet(sx, sy, 3, angle + Math.PI, null, 6, 'amulet');
+                                     createAura({x: sx, y: sy}, 20, 10, 'rgba(255, 136, 136, 0.5)');
+                                     const self = this;
+                                     bullet.update = function() {
+                                         this.x += this.dx; this.y += this.dy;
+                                         const dist = Math.hypot(this.x - self.x, this.y - self.y);
+                                         if (dist > self.radius + 10) { const index = enemyBullets.indexOf(this); if (index > -1) enemyBullets.splice(index, 1); }
+                                     };
+                                 }
+                             }
+                         },
+                         draw: function(ctx) {
+                             ctx.save();
+                             ctx.globalAlpha = Math.min(1, (300 - this.life) / 60) * Math.min(1, this.life / 60);
+                             ctx.strokeStyle = '#ff8888'; ctx.lineWidth = 3;
+                             ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+                             ctx.restore();
+                         }
+                     };
+                     boss.familiars.push(circle);
+                 }
             }
             function greatDivineBarrier() {
                 if (boss.phaseTimer === 1) {
@@ -1911,8 +1982,8 @@
                     if (timeSinceAimStart > aimDuration) {
                         boss.isAiming = false;
                          if (boss.activeWarningLaser) {
-                            boss.activeWarningLaser.angle = boss.sparkLockedAngle;
-                        }
+                             boss.activeWarningLaser.angle = boss.sparkLockedAngle;
+                         }
                     }
                 }
 
@@ -1941,36 +2012,36 @@
 
                 const timeSinceFire = timeSinceAimStart - fireTime;
                 if (boss.sparkState === 'FIRED' && timeSinceFire > 0 && timeSinceFire <= starBulletDuration) {
-                     if (gameTime % 3 === 0) {
-                         const angleToPlayer = Math.atan2(player.y - boss.y, player.x - boss.x);
-                         for (let i = -1; i <= 1; i += 1) {
-                             const bullet = createEnemyBullet(boss.x, boss.y, 4, angleToPlayer, rainbowColor(), 8, 'star');
-                             bullet.spawnTime = gameTime;
-                             bullet.baseAngle = angleToPlayer;
-                             bullet.waveDirection = i;
-                             bullet.speed = 4;
+                    if (gameTime % 3 === 0) {
+                        const angleToPlayer = Math.atan2(player.y - boss.y, player.x - boss.x);
+                        for (let i = -1; i <= 1; i += 1) {
+                            const bullet = createEnemyBullet(boss.x, boss.y, 4, angleToPlayer, rainbowColor(), 8, 'star');
+                            bullet.spawnTime = gameTime;
+                            bullet.baseAngle = angleToPlayer;
+                            bullet.waveDirection = i;
+                            bullet.speed = 4;
 
-                             bullet.update = function() {
-                                 const timeAlive = gameTime - this.spawnTime;
-                                 const travelDistance = timeAlive * this.speed;
-                                 const centerX = boss.x + Math.cos(this.baseAngle) * travelDistance;
-                                 const centerY = boss.y + Math.sin(this.baseAngle) * travelDistance;
+                            bullet.update = function() {
+                                const timeAlive = gameTime - this.spawnTime;
+                                const travelDistance = timeAlive * this.speed;
+                                const centerX = boss.x + Math.cos(this.baseAngle) * travelDistance;
+                                const centerY = boss.y + Math.sin(this.baseAngle) * travelDistance;
 
-                                 const perpAngle = this.baseAngle + Math.PI / 2;
-                                 const waveAmplitude = 60;
-                                 const waveFrequency = this.waveDirection === 0 ? 0 : 0.1;
-                                 const offset = this.waveDirection * Math.sin(timeAlive * waveFrequency) * waveAmplitude;
+                                const perpAngle = this.baseAngle + Math.PI / 2;
+                                const waveAmplitude = 60;
+                                const waveFrequency = this.waveDirection === 0 ? 0 : 0.1;
+                                const offset = this.waveDirection * Math.sin(timeAlive * waveFrequency) * waveAmplitude;
 
-                                 this.x = centerX + Math.cos(perpAngle) * offset;
-                                 this.y = centerY + Math.sin(perpAngle) * offset;
+                                this.x = centerX + Math.cos(perpAngle) * offset;
+                                this.y = centerY + Math.sin(perpAngle) * offset;
 
-                                 if (this.x < -this.radius || this.x > canvas.width + this.radius || this.y < -this.radius || this.y > canvas.height + this.radius) {
-                                     const index = enemyBullets.indexOf(this);
-                                     if (index > -1) enemyBullets.splice(index, 1);
-                                 }
-                             };
-                         }
-                     }
+                                if (this.x < -this.radius || this.x > canvas.width + this.radius || this.y < -this.radius || this.y > canvas.height + this.radius) {
+                                    const index = enemyBullets.indexOf(this);
+                                    if (index > -1) enemyBullets.splice(index, 1);
+                                }
+                            };
+                        }
+                    }
                 }
             }
 
