@@ -981,7 +981,7 @@
                     bossInfoEl.style.display = 'block';
                     const healthPercentage = Math.max(0, boss.hp / boss.maxHp);
                     bossHealthBar.style.width = `${healthPercentage * 100}%`;
-                    bossDisplayName.innerHTML = currentBossName === 'reimu' ? 'BOSS ⛩️' : 'BOSS 🧙';
+                    bossDisplayName.innerHTML = currentBossName === 'reimu' ? 'BOSS 霊夢⛩️' : 'BOSS 魔理沙🧙';
                     const remainingSpells = boss.phases.filter((p, i) => p.type === 'spell' && i >= boss.currentPhaseIndex).length;
                     bossSpellLivesEl.innerHTML = '&#x2605;'.repeat(remainingSpells);
                 } else {
@@ -1933,7 +1933,7 @@
                         boss.activeWarningLaser.timer = 1;
                     }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A2', '1.5s'); } catch(e) {}
-                    const mainLaser = createLaser(boss.x, boss.y, 60, boss.sparkLockedAngle, 120, 'rgb(255,100,255)');
+                    const mainLaser = createLaser(boss.x, boss.y, 400, boss.sparkLockedAngle, 120, 'rgb(255,255,255)');
                     createLaserBeamVFX(mainLaser);
                 }
 
@@ -1995,7 +1995,7 @@
                     }
                     try { if (sfx) sfx.laser.triggerAttackRelease('A1', '2.5s'); } catch(e) {}
 
-                    const mainLaser = createLaser(boss.x, boss.y, 80, boss.sparkLockedAngle, 180, 'rgb(255,100,255)');
+                    const mainLaser = createLaser(boss.x, boss.y, 200, boss.sparkLockedAngle, 180, 'rgb(255,255,0)');
                     createLaserBeamVFX(mainLaser);
                     mainLaser.baseAngle = boss.sparkLockedAngle;
                     mainLaser.startTime = gameTime;
